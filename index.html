@@ -819,16 +819,15 @@ async function api(params) {
   const action = params.action;
   const isRead = action === 'getRecords' || action === 'getMembers';
   if (isRead) {
-    const url = PROXY_URL + '?' + new URLSearchParams(params).toString();
-    const res = await fetch(url, { method: 'GET' });
+    // 直接打 GAS（GitHub Pages 不走 Cloudflare proxy）
+    const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   } else {
-    const res = await fetch(PROXY_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams(params).toString()
-    });
+    // 寫入操作：GAS 用 GET 模式帶參數（避免 CORS preflight）
+    const url = GAS_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { method: 'GET', redirect: 'follow' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return res.json();
   }
@@ -926,13 +925,13 @@ function renderDriverDropdown(keyword, open) {
   if (!dd) return;
   const list = getFilteredDrivers(keyword);
   if (!list.length) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
-  dd.innerHTML = list.map((m, i) => `
-    <div class="driver-opt" data-name="${m.name}" data-idx="${i}"
-      onmousedown="pickDriver('${m.name.replace(/'/g,"\\\\'")}')">
-      <span class="driver-opt-name">${m.name}</span>
-      ${m.title ? `<span class="driver-opt-title">${m.title}</span>` : ''}
-      ${m.dept ? `<span class="driver-opt-dept">${m.dept}</span>` : ''}
-    </div>`).join('');
+  dd.innerHTML = list.map((m, i) =>
+    '<div class="driver-opt" data-name="' + m.name + '" data-idx="' + i + '"' +
+    ' onmousedown="pickDriver(\'' + m.name.replace(/'/g, "\\'") + '\')">' +
+    '<span class="driver-opt-name">' + m.name + '</span>' +
+    (m.title ? '<span class="driver-opt-title">' + m.title + '</span>' : '') +
+    (m.dept  ? '<span class="driver-opt-dept">'  + m.dept  + '</span>' : '') +
+    '</div>').join('');
   driverActiveIdx = -1;
   if (open) dd.classList.add('open');
 }
@@ -1518,7 +1517,7 @@ function doExport() {
     const carpool = parseFloat(r.carpoolCost)||0, parking = parseFloat(r.parking)||0, toll = parseFloat(r.toll)||0;
     const paxNames = (r.passengers||[]).join('/');
     const calcLiters = liters > 0 ? liters : (mileage > 0 ? Math.round(mileage / 8) : 0);
-    if (fuelSubsidy > 0) oilRows.push([r.dept||'', `${mmdd}-${r.locFrom||'出發地'}-${r.locTo||'目的地'}`, calcLiters>0?`${calcLiters}`:'', oilPrice>0?oilPrice:'', fuelSubsidy, '', liters > 0 ? `${r.driver||\''}-定額${liters}L` : (mileage > 0 ? `${r.driver||\'\'}-${mileage}km/8L` : (r.driver||''))]);
+    if (fuelSubsidy > 0) oilRows.push([r.dept||'', `${mmdd}-${r.locFrom||'出發地'}-${r.locTo||'目的地'}`, calcLiters>0?`${calcLiters}`:'', oilPrice>0?oilPrice:'', fuelSubsidy, '', liters > 0 ? `${r.driver||''}-定額${liters}L` : (mileage > 0 ? `${r.driver||''}-${mileage}km/8L` : (r.driver||''))]);
     if (carpool > 0) oilRows.push([r.dept||'', `${mmdd}/共乘費(元)`, '', '', carpool, '', paxNames?`共乘人員-${paxNames}`:'']);
     if (parking > 0) oilRows.push([r.dept||'', `${mmdd}/停車費(元)`, '', '', parking, '', '']);
     if (toll > 0) oilRows.push([r.dept||'', `${mmdd}//ETC(元)`, '', '', toll, '', '']);
@@ -1809,7 +1808,8 @@ function doLogin() {
   if (u === AUTH_USER && p === AUTH_PASS) {
     sessionStorage.setItem(SESSION_KEY, '1');
     document.getElementById('loginScreen').style.display = 'none';
-    err.style.display = 'none'; init();
+    err.style.display = 'none';
+    try { init(); } catch(e) { setSyncState('error', '連線失敗'); }
   } else {
     err.style.display = 'block';
     document.getElementById('loginPass').value = '';
@@ -1823,7 +1823,8 @@ const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).pa
 ['fMonth','exFrom','exTo'].forEach(id => document.getElementById(id).value = ym);
 addPax();
 if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  document.getElementById('loginScreen').style.display = 'none'; init();
+  document.getElementById('loginScreen').style.display = 'none';
+  try { init(); } catch(e) { setSyncState('error', '連線失敗'); }
 } else { setTimeout(() => document.getElementById('loginUser').focus(), 100); }
 </script>
 </body>
