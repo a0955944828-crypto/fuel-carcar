@@ -1818,14 +1818,23 @@ function doLogin() {
 }
 
 // ── 初始化 ──
-document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
-const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-['fMonth','exFrom','exTo'].forEach(id => document.getElementById(id).value = ym);
-addPax();
-if (sessionStorage.getItem(SESSION_KEY) === '1') {
-  document.getElementById('loginScreen').style.display = 'none';
-  try { init(); } catch(e) { setSyncState('error', '連線失敗'); }
-} else { setTimeout(() => document.getElementById('loginUser').focus(), 100); }
+(function() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const el = document.getElementById('fDate'); if (el) el.value = today;
+    const now = new Date(), ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    ['fMonth','exFrom','exTo'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ym; });
+    try { addPax(); } catch(e) {}
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      document.getElementById('loginScreen').style.display = 'none';
+      try { init(); } catch(e) { setSyncState('error', '連線失敗'); }
+    } else {
+      setTimeout(() => { const u = document.getElementById('loginUser'); if (u) u.focus(); }, 100);
+    }
+  } catch(e) {
+    console.error('Init error:', e);
+  }
+})();
 </script>
 </body>
 </html>
