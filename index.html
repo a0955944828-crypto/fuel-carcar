@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="盤點油料申請">
+<meta name="theme-color" content="#1a56a4">
+<meta name="application-name" content="盤點油料申請">
+<title>盤點油料申請</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F5F4F0; --surface: #FFFFFF;
+  --border: #E2DED6; --border-dark: #C8C3B8;
+  --text-primary: #1A1714; --text-secondary: #6B6560; --text-muted: #9E9890;
+  --blue: #185FA5; --blue-light: #E6F1FB; --blue-dark: #0C447C;
+  --green: #0F6E56; --green-light: #E1F5EE; --green-dark: #085041;
+  --pink: #993556; --pink-light: #FBEAF0; --pink-dark: #72243E;
+  --amber: #854F0B; --amber-light: #FAEEDA; --amber-dark: #633806;
+  --gray: #5F5E5A; --gray-light: #F1EFE8;
+  --red-light: #FCEBEB; --red: #A32D2D; --red-border: #F09595;
+  --warn-light: #FAEEDA; --warn: #633806; --warn-border: #EF9F27;
+  --radius: 8px; --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text-primary); font-size: 14px; font-weight: 500; line-height: 1.6; min-height: 100vh; }
+/* 預設所有文字輸入框使用繁體中文輸入法 */
+input[type="text"], input[type="search"], textarea {
+  ime-mode: active;
+  -webkit-ime-mode: active;
+}
+
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+.header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
+.logo { display: flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 700; flex-shrink: 0; }
+.logo-icon { width: 30px; height: 30px; background: var(--text-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.sync-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #639922; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.sync-dot.loading { background: #BA7517; }
+.sync-dot.error   { background: #E24B4A; animation: none; }
+.sync-dot.ok      { background: #639922; }
+.nav { display: flex; gap: 2px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; }
+.nav-btn { padding: 5px 13px; border: none; background: none; border-radius: 6px; font-family: inherit; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all .15s; white-space: nowrap; }
+.nav-btn.on { background: var(--surface); color: var(--text-primary); font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+@media (max-width: 768px) { .nav { display: none !important; } }
+
+.main { max-width: 900px; margin: 0 auto; padding: 20px 24px; }
+.section { display: none; }
+.section.on { display: block; }
+
+.top-tab-nav { display: none; }
+@media (max-width: 768px) {
+  body { padding-bottom: 0; font-size: 14px; -webkit-text-size-adjust: 100%; }
+  .header { padding: 0 14px; }
+  .header .nav { display: none; }
+  .header .sync-status span#syncLabel { display: none; }
+  .header-inner { height: 52px; }
+  .logo { font-size: 14px; }
+  .logo-icon { width: 28px; height: 28px; }
+  .main { padding: 12px 14px; }
+  .bottom-nav { display: none !important; }
+  .top-tab-nav {
+    display: flex !important;
+    position: sticky; top: 52px; z-index: 150;
+    width: 100%; border-bottom: 2px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0,0,0,.08);
+  }
+  .ttab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 10px 4px; border: none; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 700; color: #fff;
+    transition: all .15s; min-height: 58px; -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .ttab-btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+  #tt-form    { background: #4A8FD4; }
+  #tt-history { background: #2A9D7F; }
+  #tt-export  { background: #5C8A2A; }
+  #tt-members { background: #C07A20; }
+  #tt-form.on    { background: #185FA5; box-shadow: inset 0 -3px 0 #0C3E73; }
+  #tt-history.on { background: #0F6E56; box-shadow: inset 0 -3px 0 #074435; }
+  #tt-export.on  { background: #3A6318; box-shadow: inset 0 -3px 0 #1E3A08; }
+  #tt-members.on { background: #854F0B; box-shadow: inset 0 -3px 0 #532F04; }
+  .ttab-badge {
+    position: absolute; top: 6px; right: calc(50% - 22px);
+    background: #fff; color: #185FA5; font-size: 10px; font-weight: 700;
+    padding: 1px 5px; border-radius: 99px; min-width: 16px; text-align: center; display: none;
+  }
+  .ttab-btn.has-badge .ttab-badge { display: block; }
+  .field label { font-size: 14px; }
+  .field input, .field select, .field textarea { font-size: 16px !important; padding: 10px 12px; min-height: 44px; line-height: 1.4; }
+  .field select { min-height: 44px; }
+  input[type=date] { min-height: 44px; }
+  .btn-primary, .btn-secondary, .btn-success { min-height: 44px; padding: 10px 18px; font-size: 14px; }
+  .btn-cpc { min-height: 44px; font-size: 13px; width: 100%; justify-content: center; }
+  .btn-rm { width: 40px; height: 40px; font-size: 18px; flex-shrink: 0; }
+  .btn-add-pax { padding: 12px; font-size: 14px; min-height: 44px; }
+  .btn-del { padding: 8px 16px; font-size: 13px; min-height: 40px; }
+  .block { padding: 14px 14px; }
+  .block-name { font-size: 14px; }
+  .g2 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .g3, .g4 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .oil-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .oil-row .field { width: 100%; }
+  .pax-row input { font-size: 16px !important; min-height: 44px; }
+  .form-footer { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+  .form-footer .form-hint { width: 100%; margin-left: 0; margin-top: 0; }
+  .filter-bar { gap: 6px; flex-wrap: wrap; }
+  .filter-bar input[type=month] { flex: 1; min-width: 130px; font-size: 14px; }
+  .filter-bar select { flex: 1; min-width: 100px; font-size: 14px; }
+  .filter-bar input[type=text] { width: 100%; flex-basis: 100%; font-size: 14px; }
+  .filter-bar .btn-secondary { font-size: 13px; padding: 7px 12px; }
+  .rec-body { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .rec-head { padding: 10px 12px; }
+  .rec-driver { font-size: 14px; }
+  .rec-sub { font-size: 12px; }
+  .rec-amount { font-size: 15px; }
+  .rs-l { font-size: 11px; }
+  .rs-v { font-size: 13px; }
+  .rec-tags { padding: 0 12px 10px; }
+  .rec-foot { padding: 0 12px 10px; }
+  .stat-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-val { font-size: 17px; }
+  .stat-lbl { font-size: 11px; }
+  .exp-date-row, .exp-filter-row { grid-template-columns: 1fr !important; gap: 10px; }
+  .exp-card { padding: 16px 14px; }
+  .exp-card h3 { font-size: 14px; }
+  .exp-card p { font-size: 13px; }
+  .mem-head, .mem-row, .mem-add { padding-left: 14px; padding-right: 14px; }
+  .mem-name { font-size: 14px; }
+  .mem-add input { font-size: 16px !important; min-height: 44px; }
+  .photo-upload-row { gap: 8px; }
+  #toasts { bottom: 88px; right: 14px; left: 14px; align-items: center; }
+  .toast { font-size: 13px; width: 100%; justify-content: center; }
+  .notice { font-size: 12px; }
+}
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.block { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.block:last-of-type { border-bottom: none; }
+.block.b-basic  { border-left: 3px solid #378ADD; }
+.block.b-mile   { border-left: 3px solid #1D9E75; }
+.block.b-carpool{ border-left: 3px solid #D4537E; }
+.block.b-cost   { border-left: 3px solid #BA7517; }
+.block.b-note   { border-left: 3px solid #888780; }
+.block-title { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; }
+.block-icon { width: 20px; height: 20px; border-radius: 5px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.b-basic  .block-icon { background: var(--blue-light); }
+.b-mile   .block-icon { background: var(--green-light); }
+.b-carpool .block-icon { background: var(--pink-light); }
+.b-cost   .block-icon { background: var(--amber-light); }
+.b-note   .block-icon { background: var(--gray-light); }
+.block-label { display: flex; flex-direction: column; gap: 1px; }
+.block-name { font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+.b-basic  .block-name { color: var(--blue-dark); }
+.b-mile   .block-name { color: var(--green-dark); }
+.b-carpool .block-name { color: var(--pink-dark); }
+.b-cost   .block-name { color: var(--amber-dark); }
+.b-note   .block-name { color: var(--gray); }
+.block-desc { display: none; }
+
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.g4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+@media (max-width: 580px) { .g3, .g4 { grid-template-columns: 1fr 1fr; } }
+
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 14px; font-weight: 500; }
+.b-basic  .field label { color: var(--blue); }
+.b-mile   .field label { color: var(--green); }
+.b-carpool .field label { color: var(--pink); }
+.b-cost   .field label { color: var(--amber); }
+.b-note   .field label { color: var(--gray); }
+
+/* ── 駕駛人下拉建議列表樣式 ── */
+.driver-select-wrap { position: relative; }
+.driver-dropdown {
+  position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 200;
+  background: var(--surface); border: 1px solid var(--border-dark); border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12); max-height: 220px; overflow-y: auto; display: none;
+}
+.driver-dropdown.open { display: block; }
+.driver-opt {
+  padding: 9px 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border); transition: background .1s;
+}
+.driver-opt:last-child { border-bottom: none; }
+.driver-opt:hover, .driver-opt.active { background: var(--blue-light); }
+.driver-opt-name { font-weight: 500; color: var(--text-primary); }
+.driver-opt-title { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+.driver-opt-dept { font-size: 10px; background: var(--blue-light); color: var(--blue-dark); padding: 1px 6px; border-radius: 99px; }
+
+.photo-upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.photo-slot { position: relative; border: 1.5px dashed var(--border-dark); border-radius: var(--radius); overflow: hidden; aspect-ratio: 4/3; cursor: pointer; background: var(--bg); transition: all .15s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.photo-slot:hover { border-color: var(--gray); background: var(--gray-light); }
+.photo-slot input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-slot-icon { width: 28px; height: 28px; background: var(--gray-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.photo-slot-label { font-size: 11px; color: var(--text-muted); pointer-events: none; }
+.photo-slot-num { font-size: 10px; color: var(--text-muted); pointer-events: none; }
+.photo-slot.has-photo { border-style: solid; border-color: var(--border); }
+.photo-slot.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-slot .photo-remove { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; background: rgba(0,0,0,.55); border: none; border-radius: 50%; color: white; font-size: 14px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; transition: background .12s; }
+.photo-slot .photo-remove:hover { background: rgba(200,30,30,.8); }
+.photo-slot.has-photo .photo-slot-icon, .photo-slot.has-photo .photo-slot-label, .photo-slot.has-photo .photo-slot-num { display: none; }
+.rec-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 15px 12px; }
+.rec-photo { border-radius: var(--radius); overflow: hidden; aspect-ratio: 4/3; border: 1px solid var(--border); cursor: pointer; }
+.rec-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .12s; }
+.rec-photo img:hover { opacity: .88; }
+.photo-lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.photo-lightbox img { max-width: 100%; max-height: 90vh; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,.5); }
+.photo-lightbox-close { position: absolute; top: 16px; right: 16px; width: 36px; height: 36px; background: rgba(255,255,255,.15); border: none; border-radius: 50%; color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+.field input, .field select, .field textarea {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  font-family: inherit; font-size: 13px; color: var(--text-primary);
+  background: var(--surface); width: 100%; transition: border-color .12s, background .12s;
+}
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; box-shadow: 0 0 0 3px rgba(55,138,221,.1); }
+.b-basic  .field input:focus, .b-basic  .field select:focus { border-color: #378ADD; }
+.b-mile   .field input:focus { border-color: #1D9E75; }
+.b-carpool .field input:focus { border-color: #D4537E; }
+.b-cost   .field input:focus, .b-cost .field select:focus { border-color: #BA7517; }
+.b-note   .field textarea:focus { border-color: #888780; }
+.field textarea { resize: vertical; min-height: 56px; }
+input.auto { background: var(--bg); color: var(--text-secondary); font-weight: 500; }
+input.auto.ok   { background: var(--green-light); color: var(--green-dark); border-color: #5DCAA5; }
+input.auto.warn { background: var(--warn-light); color: var(--warn); border-color: var(--warn-border); }
+input.auto.err  { background: var(--red-light); color: var(--red); border-color: var(--red-border); }
+input.carpoolcost        { background: var(--bg); color: var(--text-secondary); font-weight: 500; }
+input.carpoolcost.active { background: var(--pink-light); color: var(--pink-dark); }
+input.fuelsubsidy        { background: var(--bg); color: var(--text-secondary); font-weight: 500; }
+input.fuelsubsidy.loaded { background: var(--amber-light); color: var(--amber-dark); font-weight: 500; }
+
+.mile-alert { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; padding: 5px 8px; border-radius: var(--radius); margin-top: 5px; border: 1px solid; }
+.mile-alert.show { display: flex; }
+.mile-alert.warn { background: var(--warn-light); color: var(--warn); border-color: var(--warn-border); }
+.mile-alert.err  { background: var(--red-light); color: var(--red); border-color: var(--red-border); }
+
+.oil-row { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 10px; }
+.oil-row .field { flex: 1; }
+.btn-cpc { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; background: var(--amber-light); color: var(--amber-dark); border: 1px solid var(--warn-border); border-radius: var(--radius); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; text-decoration: none; transition: all .12s; flex-shrink: 0; }
+.btn-cpc:hover { background: #EF9F27; color: #412402; }
+.oil-hint { font-size: 11px; color: var(--amber); display: flex; align-items: center; gap: 4px; margin-top: 4px; opacity: .85; }
+
+.pax-list { display: flex; flex-direction: column; gap: 6px; }
+.pax-row { display: flex; align-items: center; gap: 7px; }
+.pax-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 13px; color: var(--text-primary); background: var(--surface); height: 38px; }
+.pax-n { font-size: 11px; color: var(--pink); width: 16px; text-align: right; flex-shrink: 0; }
+.btn-rm { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 50%; background: none; cursor: pointer; color: var(--text-muted); font-size: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
+.btn-rm:hover { border-color: #E24B4A; color: #A32D2D; background: var(--red-light); }
+.btn-add-pax { margin-top: 7px; width: 100%; padding: 7px; border: 1px dashed #ED93B1; border-radius: var(--radius); background: none; font-family: inherit; font-size: 12px; color: var(--pink); cursor: pointer; transition: all .12s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+.btn-add-pax:hover { background: var(--pink-light); }
+
+.form-footer { padding: 14px 20px; background: var(--bg); border-top: 1px solid var(--border); display: flex; gap: 9px; align-items: center; }
+.btn-primary { padding: 9px 22px; background: var(--text-primary); color: #fff; border: none; border-radius: var(--radius); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: opacity .12s; }
+.btn-primary:hover { opacity: .82; }
+.btn-secondary { padding: 9px 16px; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 13px; cursor: pointer; transition: all .12s; }
+.btn-secondary:hover { background: var(--bg); }
+.btn-success { padding: 9px 20px; background: #27500A; color: #EAF3DE; border: none; border-radius: var(--radius); font-family: inherit; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: opacity .12s; }
+.btn-success:hover { opacity: .85; }
+.form-hint { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+
+.stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+@media (max-width: 580px) { .stat-row { grid-template-columns: 1fr 1fr; } }
+.stat-card { border-radius: var(--radius); padding: 13px 15px; }
+.sc-blue  { background: var(--blue-light); }  .sc-green { background: var(--green-light); }
+.sc-pink  { background: var(--pink-light); }  .sc-amber { background: var(--amber-light); }
+.stat-lbl { font-size: 10px; margin-bottom: 3px; }
+.sc-blue .stat-lbl  { color: var(--blue); }   .sc-green .stat-lbl { color: var(--green); }
+.sc-pink .stat-lbl  { color: var(--pink); }   .sc-amber .stat-lbl { color: var(--amber); }
+.stat-val { font-size: 20px; font-weight: 700; }
+.sc-blue .stat-val  { color: var(--blue-dark); }  .sc-green .stat-val { color: var(--green-dark); }
+.sc-pink .stat-val  { color: var(--pink-dark); }  .sc-amber .stat-val { color: var(--amber-dark); }
+
+.filter-bar { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-bar input, .filter-bar select { padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 12px; background: var(--surface); color: var(--text-primary); }
+.filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--blue); }
+.filter-bar input[type=text] { flex: 1; min-width: 120px; }
+
+.rec-list { display: flex; flex-direction: column; gap: 9px; }
+.rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); transition: border-color .12s; }
+.rec-card:hover { border-color: var(--border-dark); }
+.rec-head { padding: 11px 15px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); background: var(--blue-light); }
+.avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rec-info { flex: 1; }
+.rec-driver { font-weight: 500; font-size: 13px; color: var(--blue-dark); }
+.rec-sub { font-size: 11px; color: var(--blue); opacity: .8; }
+.rec-amount { font-weight: 700; font-size: 15px; color: var(--blue-dark); }
+.rec-body { padding: 11px 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(95px, 1fr)); gap: 8px; }
+.rs { display: flex; flex-direction: column; gap: 1px; }
+.rs-l { font-size: 10px; color: var(--text-muted); }
+.rs-v { font-size: 12px; font-weight: 500; }
+.rec-tags { padding: 0 15px 11px; display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+.tg-b { background: var(--blue-light);  color: var(--blue-dark); }
+.tg-g { background: var(--green-light); color: var(--green-dark); }
+.tg-p { background: var(--pink-light);  color: var(--pink-dark); }
+.tg-a { background: var(--amber-light); color: var(--amber-dark); }
+.rec-foot { padding: 0 15px 11px; }
+.btn-del { padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; background: none; font-family: inherit; font-size: 11px; color: var(--text-muted); cursor: pointer; transition: all .12s; }
+.btn-del:hover { border-color: #E24B4A; color: #A32D2D; background: var(--red-light); }
+.btn-edit { padding: 3px 10px; border: 1px solid var(--border); border-radius: 6px; background: none; font-family: inherit; font-size: 11px; color: var(--blue-dark); cursor: pointer; transition: all .12s; }
+.btn-edit:hover { border-color: var(--blue); background: var(--blue-light); }
+
+.empty { text-align: center; padding: 52px 20px; color: var(--text-muted); }
+.empty p { font-size: 15px; font-weight: 500; margin-bottom: 4px; color: var(--text-secondary); }
+.loading-overlay { text-align: center; padding: 40px 20px; color: var(--text-secondary); font-size: 13px; }
+.spinner { width: 24px; height: 24px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.exp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.exp-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+.exp-card p  { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px; }
+.sheet-item { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.sheet-item:last-child { border-bottom: none; }
+.sdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sheets-box { background: var(--bg); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 14px; }
+
+/* ── 人員管理 ── */
+.mem-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.mem-head { padding: 13px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.mem-head h3 { font-size: 14px; font-weight: 600; }
+.mem-row { padding: 11px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 11px; }
+.mem-row:last-child { border-bottom: none; }
+.mem-av { width: 32px; height: 32px; border-radius: 50%; background: var(--bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0; }
+.mem-name { flex: 1; font-size: 13px; font-weight: 500; }
+.mem-add { padding: 13px 18px; display: flex; gap: 8px; background: var(--bg); flex-wrap: wrap; }
+.mem-add input { flex: 1; min-width: 120px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 13px; background: var(--surface); }
+.mem-add input:focus { outline: none; border-color: var(--blue); }
+.mem-add select { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); font-family: inherit; font-size: 13px; background: var(--surface); color: var(--text-primary); height: 38px; }
+
+/* 匯入區塊 */
+.mem-import { padding: 13px 18px; border-top: 1px solid var(--border); background: var(--bg); }
+.mem-import-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+.import-format-hint { font-size: 11px; color: var(--blue-dark); background: var(--blue-light); border: 1px solid #85B7EB; border-radius: var(--radius); padding: 7px 11px; margin-bottom: 10px; display: flex; align-items: flex-start; gap: 6px; }
+.import-format-hint svg { flex-shrink: 0; margin-top: 1px; }
+.import-drop-zone {
+  border: 1.5px dashed var(--border-dark); border-radius: var(--radius);
+  padding: 18px 14px; text-align: center; cursor: pointer;
+  transition: all .15s; background: var(--surface); position: relative;
+}
+.import-drop-zone:hover, .import-drop-zone.dragover { border-color: var(--blue); background: var(--blue-light); }
+.import-drop-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.import-drop-icon { margin: 0 auto 8px; width: 32px; height: 32px; background: var(--blue-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.import-drop-text { font-size: 12px; color: var(--text-secondary); }
+.import-drop-text strong { color: var(--blue); font-weight: 500; }
+.import-drop-hint { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+.import-preview { margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; display: none; }
+.import-preview.show { display: block; }
+.import-preview-head { padding: 9px 12px; background: var(--blue-light); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 500; color: var(--blue-dark); display: flex; align-items: center; justify-content: space-between; }
+.import-preview-list { max-height: 200px; overflow-y: auto; }
+.import-preview-row { padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 12px; display: flex; align-items: center; gap: 8px; }
+.import-preview-row:last-child { border-bottom: none; }
+.import-status { font-size: 10px; padding: 1px 6px; border-radius: 99px; font-weight: 500; flex-shrink: 0; }
+.import-status.new  { background: var(--green-light); color: var(--green-dark); }
+.import-status.dup  { background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+.import-actions { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: center; }
+.import-summary { font-size: 11px; color: var(--text-secondary); margin-left: auto; }
+.btn-import-dl { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; background: var(--green-light); color: var(--green-dark); border: 1px solid #97C459; border-radius: var(--radius); font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer; text-decoration: none; transition: all .12s; }
+.btn-import-dl:hover { background: #C0DD97; }
+
+#toasts { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 7px; z-index: 999; pointer-events: none; }
+.toast { padding: 11px 18px; border-radius: var(--radius); font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; transform: translateX(110%); transition: transform .28s cubic-bezier(.34,1.56,.64,1); border: 1px solid; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+.toast.show { transform: translateX(0); }
+.toast.ok { background: #EAF3DE; color: #27500A; border-color: #97C459; }
+.toast.er { background: var(--red-light); color: var(--red); border-color: var(--red-border); }
+.toast.in { background: var(--blue-light); color: var(--blue-dark); border-color: #85B7EB; }
+
+.notice { border-radius: var(--radius); padding: 9px 13px; font-size: 11px; margin-bottom: 14px; display: flex; align-items: flex-start; gap: 7px; border: 1px solid; }
+.notice.info  { background: var(--blue-light);  color: var(--blue-dark);  border-color: #85B7EB; }
+.notice.green { background: var(--green-light); color: var(--green-dark); border-color: #5DCAA5; }
+.notice svg { flex-shrink: 0; margin-top: 1px; }
+
+/* 課別標籤色 */
+.dept-tag { display: inline-block; font-size: 10px; padding: 1px 7px; border-radius: 99px; font-weight: 500; }
+.dept-北一課 { background: #E6F1FB; color: #0C447C; }
+.dept-北二課 { background: #E1F5EE; color: #085041; }
+.dept-北三課 { background: #FBEAF0; color: #72243E; }
+.dept-北四課 { background: #FAEEDA; color: #633806; }
+.dept-桃竹課 { background: #EDE9FF; color: #4B3A8A; }
+.dept-台中課 { background: #FFF0E6; color: #7A3B0C; }
+.dept-嘉南課 { background: #E6FBF1; color: #0C5A35; }
+.dept-高屏課 { background: #FBE6E6; color: #7A0C0C; }
+</style>
+</head>
+<body>
+
+<!-- ── 登入畫面 ── -->
+<div id="loginScreen" style="display:flex;position:fixed;inset:0;z-index:99999;background:#f0f4fa;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:16px;border:1px solid #dce4f0;padding:36px 32px;width:320px;box-shadow:0 4px 24px rgba(26,86,164,0.10)">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:56px;height:56px;background:#1a56a4;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div style="font-size:18px;font-weight:700;color:#1a3a6b">車輛用車記錄系統</div>
+      <div style="font-size:13px;color:#888;margin-top:4px">請輸入帳號及密碼登入</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <label style="font-size:12px;color:#555;font-weight:500;display:block;margin-bottom:5px">帳號</label>
+      <input id="loginUser" type="text" autocomplete="username" placeholder="請輸入帳號"
+        lang="zh-TW" inputmode="text"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cdd6e8;border-radius:8px;font-size:14px;font-family:inherit;outline:none"
+        onkeydown="if(event.key==='Enter')document.getElementById('loginPass').focus()">
+    </div>
+    <div style="margin-bottom:20px">
+      <label style="font-size:12px;color:#555;font-weight:500;display:block;margin-bottom:5px">密碼</label>
+      <input id="loginPass" type="password" autocomplete="current-password" placeholder="請輸入密碼"
+        style="width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #cdd6e8;border-radius:8px;font-size:14px;font-family:inherit;outline:none"
+        onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div id="loginErr" style="display:none;background:#fff0f0;border:1px solid #f7c1c1;border-radius:6px;padding:8px 12px;font-size:12px;color:#a32d2d;margin-bottom:14px;text-align:center">帳號或密碼錯誤，請重新輸入</div>
+    <button onclick="doLogin()" style="width:100%;padding:11px;background:#1a56a4;color:white;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">登入</button>
+  </div>
+</div>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <rect x="1" y="3" width="15" height="13" rx="2"/>
+          <path d="M16 8h4l3 5v3h-7V8z"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+      </div>
+      車輛用車記錄系統
+    </div>
+    <nav class="nav">
+      <button class="nav-btn on" onclick="goTab('form',this)">新增記錄</button>
+      <button class="nav-btn" id="histTab" onclick="goTab('history',this)">歷史記錄</button>
+      <button class="nav-btn" onclick="goTab('export',this)">匯出 Excel</button>
+      <button class="nav-btn" onclick="goTab('members',this)">人員管理</button>
+    </nav>
+    <div class="sync-status">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncLabel">連線中…</span>
+    </div>
+  </div>
+</header>
+
+<!-- 手機上方頁籤 -->
+<nav class="top-tab-nav" id="topTabNav">
+  <button class="ttab-btn on" id="tt-form" onclick="goTab('form',this,'tt-form')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    新增記錄
+  </button>
+  <button class="ttab-btn" id="tt-history" onclick="goTab('history',this,'tt-history')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+    <span class="ttab-badge" id="ttBadge"></span>
+    歷史記錄
+  </button>
+  <button class="ttab-btn" id="tt-export" onclick="goTab('export',this,'tt-export')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    匯出
+  </button>
+  <button class="ttab-btn" id="tt-members" onclick="goTab('members',this,'tt-members')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    人員
+  </button>
+</nav>
+
+<main class="main">
+
+  <!-- ── 新增記錄 ── -->
+  <div id="tab-form" class="section on">
+    <div class="notice green">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></svg>
+      資料即時同步至 Google Sheets，所有同仁共用同一份記錄
+    </div>
+    <div class="card">
+
+      <div class="block b-basic">
+        <div class="block-title">
+          <div class="block-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="block-label"><span class="block-name b-basic">基本資訊</span></div>
+        </div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="field"><label>盤點課別 *</label>
+            <select id="fDept" onchange="recalc();filterDriverByDept()">
+              <option value="">請選擇</option>
+              <option value="北一課">北一課</option>
+              <option value="北二課">北二課</option>
+              <option value="北三課">北三課</option>
+              <option value="北四課">北四課</option>
+              <option value="桃竹課">桃竹課</option>
+              <option value="台中課">台中課</option>
+              <option value="嘉南課">嘉南課</option>
+              <option value="高屏課">高屏課</option>
+            </select>
+          </div>
+          <div class="field"><label>行程目的</label>
+            <select id="fPurpose">
+              <option value="">請選擇</option>
+              <option value="盤點">盤點</option>
+              <option value="點檢">點檢</option>
+            </select>
+          </div>
+        </div>
+        <div class="g2">
+          <div class="field"><label>日期 *</label><input type="date" id="fDate"></div>
+          <!-- ── 駕駛人員（自訂下拉） ── -->
+          <div class="field">
+            <label>駕駛人員 *</label>
+            <div class="driver-select-wrap" id="driverWrap">
+              <input type="text" id="fDriver" placeholder="選擇或輸入姓名"
+                autocomplete="off" lang="zh-TW" inputmode="text"
+                oninput="onDriverInput()"
+                onfocus="onDriverFocus()"
+                onblur="onDriverBlur()"
+                onkeydown="onDriverKeydown(event)">
+              <div class="driver-dropdown" id="driverDropdown"></div>
+            </div>
+            <div id="driverWarn" style="display:none;margin-top:4px;font-size:11px;font-weight:500;color:var(--warn);background:var(--warn-light);border:1px solid var(--warn-border);border-radius:var(--radius);padding:4px 8px;display:flex;align-items:center;gap:4px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              此人員不在名單中，儲存時將需要確認
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block b-mile">
+        <div class="block-title">
+          <div class="block-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></div>
+          <div class="block-label"><span class="block-name b-mile">里程資訊</span></div>
+        </div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="field"><label>出發地點</label><input type="text" id="fLocFrom" placeholder="例：台北市" lang="zh-TW" inputmode="text"></div>
+          <div class="field"><label>目的地點</label><input type="text" id="fLocTo" placeholder="例：壽豐東華店" maxlength="7" lang="zh-TW" inputmode="text"></div>
+        </div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="field">
+            <label>定額油料補助公升數（填入後免填起訖里程）</label>
+            <input type="number" inputmode="decimal" id="fFixedLiters" placeholder="輸入公升數（數字）" min="0" step="0.1" oninput="onFixedLitersInput()" onchange="onFixedLitersInput()">
+          </div>
+        </div>
+        <div id="mileSection">
+          <div class="g3">
+            <div class="field"><label id="labelOdoS">出發里程 (km) *</label><input type="number" inputmode="decimal" id="fOdoS" placeholder="12300" min="0" oninput="recalc()"></div>
+            <div class="field"><label id="labelOdoE">返回里程 (km) *</label><input type="number" inputmode="decimal" id="fOdoE" placeholder="12450" min="0" oninput="recalc()"></div>
+            <div class="field">
+              <label>行駛公里數（自動）</label>
+              <input type="number" id="fMile" class="auto" readonly placeholder="—">
+              <div id="mileAlert" class="mile-alert">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span id="mileAlertText"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="block b-carpool">
+        <div class="block-title">
+          <div class="block-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#993556" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+          <div class="block-label">
+            <span class="block-name b-carpool">共乘人員</span>
+            <span style="font-size:11px;color:var(--pink);font-weight:500;margin-top:2px">請填寫代號（限 1 個繁體中文字）</span>
+          </div>
+        </div>
+        <div class="pax-list" id="paxList"></div>
+        <button class="btn-add-pax" onclick="addPax()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新增乘客
+        </button>
+      </div>
+
+      <div class="block b-cost">
+        <div class="block-title">
+          <div class="block-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+          <div class="block-label"><span class="block-name b-cost">費用明細</span></div>
+        </div>
+        <div class="oil-row">
+          <div class="field">
+            <label>當日 95 無鉛油價 (元/公升) *</label>
+            <input type="number" inputmode="decimal" id="fOilPrice" placeholder="例：33.9" min="0" step="0.1" oninput="onOilPriceInput()" onchange="onOilPriceInput()">
+          </div>
+          <a class="btn-cpc" href="https://www.cpc.com.tw/historyprice.aspx?n=2890" target="_blank" rel="noopener">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15,3 21,3 21,9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            查詢中油牌價
+          </a>
+        </div>
+        <div class="oil-hint">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          點擊「查詢中油牌價」查詢 95 無鉛汽油目前牌價後填入，油料補助費用將自動計算（公里數 ÷ 8 × 油價）
+        </div>
+        <div class="g3" style="margin-top:12px">
+          <div class="field"><label>停車費 (元)</label><input type="number" inputmode="decimal" id="fPark" placeholder="0" min="0" oninput="recalc()"></div>
+          <div class="field"><label>過路費 / ETC (元)</label><input type="number" inputmode="decimal" id="fToll" placeholder="0" min="0" oninput="recalc()"></div>
+          <div class="field"><label>共乘費用（自動）</label><input type="number" id="fCarpool" class="carpoolcost" readonly value="0"></div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="field"><label>油料補助費用（自動）</label><input type="number" id="fFuelSubsidy" class="fuelsubsidy" readonly value="0"></div>
+        </div>
+      </div>
+
+      <div class="block b-note">
+        <div class="block-title">
+          <div class="block-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>
+          <div class="block-label"><span class="block-name b-note">請提供起訖里程數照片</span></div>
+        </div>
+        <div class="field"><textarea id="fNote" placeholder="備註…" rows="2" lang="zh-TW"></textarea></div>
+        <div class="photo-upload-row">
+          <div class="photo-slot" id="photoSlot1">
+            <input type="file" accept="image/*" onchange="handlePhoto(this,1)">
+            <div class="photo-slot-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg></div>
+            <span class="photo-slot-label">新增照片</span><span class="photo-slot-num">第 1 張</span>
+          </div>
+          <div class="photo-slot" id="photoSlot2">
+            <input type="file" accept="image/*" onchange="handlePhoto(this,2)">
+            <div class="photo-slot-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg></div>
+            <span class="photo-slot-label">新增照片</span><span class="photo-slot-num">第 2 張</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-footer">
+        <button id="saveBtn" class="btn-primary" onclick="saveRec()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg>
+          儲存並同步
+        </button>
+        <button class="btn-secondary" onclick="resetForm()">清除</button>
+        <span class="form-hint">* 必填欄位</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 歷史記錄 ── -->
+  <div id="tab-history" class="section">
+    <div class="stat-row" id="statRow"></div>
+    <div class="filter-bar">
+      <input type="month" id="fMonth" oninput="renderHist()">
+      <input type="text" id="fDrvF" placeholder="全部人員" list="fDrvFList" autocomplete="off" lang="zh-TW" inputmode="text" oninput="renderHist()" style="flex:1;min-width:100px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:13px;background:var(--surface);color:var(--text-primary)">
+      <datalist id="fDrvFList"></datalist>
+      <select id="fDeptF" onchange="renderHist()">
+        <option value="">全部課別</option>
+        <option value="北一課">北一課</option>
+        <option value="北二課">北二課</option>
+        <option value="北三課">北三課</option>
+        <option value="北四課">北四課</option>
+        <option value="桃竹課">桃竹課</option>
+        <option value="台中課">台中課</option>
+        <option value="嘉南課">嘉南課</option>
+        <option value="高屏課">高屏課</option>
+      </select>
+      <input type="text" id="fSearch" placeholder="搜尋目的…" lang="zh-TW" inputmode="text" oninput="renderHist()">
+      <button class="btn-secondary" onclick="loadRecords()" style="font-size:12px;padding:7px 12px;display:flex;align-items:center;gap:5px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23,4 23,10 17,10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+        重新載入
+      </button>
+    </div>
+    <div id="recList"></div>
+  </div>
+
+  <!-- ── 匯出 Excel ── -->
+  <div id="tab-export" class="section">
+    <div class="exp-card">
+      <h3>匯出設定</h3>
+      <p>從 Google Sheets 取得資料並下載 Excel，包含完整明細與統計彙整。</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+        <div class="field"><label style="font-size:11px;color:var(--text-secondary);font-weight:500">起始月份</label><input type="month" id="exFrom"></div>
+        <div class="field"><label style="font-size:11px;color:var(--text-secondary);font-weight:500">結束月份</label><input type="month" id="exTo"></div>
+        <div class="field">
+          <label style="font-size:11px;color:var(--text-secondary);font-weight:500">篩選人員（可手輸或點選，留空為全部）</label>
+          <input type="text" id="exDrv" placeholder="全部人員" list="exDrvList" autocomplete="off" lang="zh-TW" inputmode="text">
+          <datalist id="exDrvList"></datalist>
+        </div>
+        <div class="field">
+          <label style="font-size:11px;color:var(--text-secondary);font-weight:500">篩選課別（留空為全部）</label>
+          <select id="exDept">
+            <option value="">全部課別</option>
+            <option value="北一課">北一課</option>
+            <option value="北二課">北二課</option>
+            <option value="北三課">北三課</option>
+            <option value="北四課">北四課</option>
+            <option value="桃竹課">桃竹課</option>
+            <option value="台中課">台中課</option>
+            <option value="嘉南課">嘉南課</option>
+            <option value="高屏課">高屏課</option>
+          </select>
+        </div>
+      </div>
+      <div class="sheets-box">
+        <div class="sheet-item"><div class="sdot" style="background:#185FA5"></div><strong>明細表</strong>&emsp;每筆完整用車記錄</div>
+        <div class="sheet-item"><div class="sdot" style="background:#27500A"></div><strong>人員彙總</strong>&emsp;各駕駛里程與費用統計</div>
+        <div class="sheet-item"><div class="sdot" style="background:#854F0B"></div><strong>月份統計</strong>&emsp;各月費用與里程趨勢</div>
+        <div class="sheet-item"><div class="sdot" style="background:#993556"></div><strong>油料申請單</strong>&emsp;依課別產出申請格式</div>
+        <div class="sheet-item"><div class="sdot" style="background:#0F6E56"></div><strong>出車頻率</strong>&emsp;各人員出車次數統計</div>
+      </div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn-success" onclick="doExport()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          下載 Excel (.xlsx)
+        </button>
+        <button class="btn-secondary" onclick="previewCount()">預覽筆數</button>
+        <button class="btn-secondary" onclick="renderFreqChart()" style="color:var(--green-dark);border-color:var(--green)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="3" width="4" height="18"/><rect x="9" y="8" width="4" height="13"/><rect x="16" y="13" width="4" height="8"/></svg>
+          預覽出車頻率圖
+        </button>
+        <button class="btn-secondary" onclick="openMotoSystem()" style="color:#5B21B6;border-color:#7C4DBC;background:#F3E8FF">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M5 17h3l2-5h5l2 3h2"/><path d="M12 12V7l-2-2"/></svg>
+          開啟機車油料費系統
+        </button>
+      </div>
+      <div id="exPreview" style="margin-top:10px;font-size:12px;color:var(--text-secondary)"></div>
+      <div id="freqChartArea" style="display:none;margin-top:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">出車頻率統計</div>
+        <div class="freq-stats" style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px"></div>
+        <canvas id="freqChart" style="width:100%;max-height:340px"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 人員管理 ── -->
+  <div id="tab-members" class="section">
+    <div class="mem-card" style="margin-bottom:14px">
+      <div class="mem-head">
+        <h3>駕駛人員名單</h3>
+        <span style="font-size:12px;color:var(--text-muted)" id="memCnt"></span>
+      </div>
+
+      <!-- ① 新增欄位（名單之前）-->
+      <div class="mem-add" style="border-bottom:1px solid var(--border)">
+        <select id="newMemDept" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;font-size:13px;background:var(--surface);color:var(--text-primary);height:38px;flex-shrink:0">
+          <option value="">選擇課別</option>
+          <option value="北一課">北一課</option>
+          <option value="北二課">北二課</option>
+          <option value="北三課">北三課</option>
+          <option value="北四課">北四課</option>
+          <option value="桃竹課">桃竹課</option>
+          <option value="台中課">台中課</option>
+          <option value="嘉南課">嘉南課</option>
+          <option value="高屏課">高屏課</option>
+        </select>
+        <input type="text" id="newMemName" placeholder="姓名 *" lang="zh-TW" inputmode="text" onkeydown="if(event.key==='Enter')addMember()">
+        <input type="text" id="newMemTitle" placeholder="職稱（選填）" lang="zh-TW" inputmode="text" onkeydown="if(event.key==='Enter')addMember()">
+        <button class="btn-primary" onclick="addMember()" style="flex-shrink:0">新增</button>
+      </div>
+
+      <!-- ② 人員名單 -->
+      <div id="memList"></div>
+
+      <!-- ③ Excel 批次匯入 -->
+      <div class="mem-import">
+        <div class="mem-import-label">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          從 Excel 批次匯入
+        </div>
+        <!-- 格式提示 -->
+        <div class="import-format-hint">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div>
+            <strong>匯入格式：</strong>第一欄「課別」、第二欄「姓名」（比對依據）、第三欄「職稱」（選填）<br>
+            重複比對依據為<strong>姓名欄（第二欄）</strong>，已存在的姓名將自動略過。
+          </div>
+        </div>
+        <div class="import-drop-zone" id="importDropZone"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="handleImportDrop(event)">
+          <input type="file" id="importFile" accept=".xlsx,.xls,.csv" onchange="handleImportFile(this)">
+          <div class="import-drop-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+          <div class="import-drop-text">拖曳 Excel 檔案至此，或 <strong>點擊選擇檔案</strong></div>
+          <div class="import-drop-hint">支援 .xlsx、.xls、.csv｜格式：課別 / 姓名 / 職稱</div>
+        </div>
+        <div class="import-preview" id="importPreview">
+          <div class="import-preview-head">
+            <span id="importPreviewTitle">預覽匯入名單</span>
+            <button onclick="clearImport()" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);line-height:1">×</button>
+          </div>
+          <div class="import-preview-list" id="importPreviewList"></div>
+          <div class="import-actions">
+            <button class="btn-primary" onclick="confirmImport()" id="importConfirmBtn" style="font-size:12px;padding:7px 14px">確認匯入</button>
+            <button class="btn-secondary" onclick="clearImport()" style="font-size:12px;padding:7px 12px">取消</button>
+            <span class="import-summary" id="importSummary"></span>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <button class="btn-import-dl" onclick="downloadTemplate()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            下載範本 Excel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="exp-card">
+      <h3>資料管理</h3>
+      <p>所有記錄儲存於 Google Sheets，所有使用者共用同一份資料。</p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap">
+        <button class="btn-secondary" style="color:#A32D2D;border-color:#E24B4A" onclick="clearAll()">清除所有記錄</button>
+        <button class="btn-secondary" style="color:#A32D2D;border-color:#E24B4A" onclick="clearAllMembers()">清空人員名單</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav" id="bottomNav"></nav>
+<div id="toasts"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbw-gEsYr67m4l1_p_5SNn9vsIyXrZUBKaXXyyJYcd6lMvdyP8hMwIsZG1ElUuU-esCP/exec';
+const PROXY_URL = 'https://gas-proxy.a0955944828.workers.dev/api';
+const CARPOOL_FEE = 250;
+let records = [], members = [], mileValid = true;
+
+// ── API ──
+async function api(params) {
+  const action = params.action;
+  const isRead = action === 'getRecords' || action === 'getMembers';
+  if (isRead) {
+    const url = PROXY_URL + '?' + new URLSearchParams(params).toString();
+    const res = await fetch(url, { method: 'GET' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  } else {
+    const res = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(params).toString()
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+}
+
+function setSyncState(state, label) {
+  document.getElementById('syncDot').className = 'sync-dot ' + state;
+  document.getElementById('syncLabel').textContent = label;
+}
+
+async function loadRecords() {
+  setSyncState('loading', '載入中…');
+  try {
+    const data = await api({ action: 'getRecords' });
+    records = data.records || [];
+    setSyncState('ok', '已同步');
+    updateBadge();
+    if (document.getElementById('tab-history').classList.contains('on')) renderHist();
+  } catch(e) {
+    setSyncState('error', '連線失敗');
+    toast('載入記錄失敗', 'er');
+  }
+}
+
+async function loadMembers() {
+  try {
+    const data = await api({ action: 'getMembers' });
+    members = data.members || [];
+    buildSelects();
+    renderMembers();
+  } catch(e) {
+    members = [];
+    buildSelects();
+  }
+}
+
+async function init() {
+  setSyncState('loading', '連線中…');
+  await Promise.all([loadRecords(), loadMembers()]);
+}
+
+// ── helper：member 物件化 ──
+function toObj(m) {
+  if (typeof m === 'string') return { name: m, dept: '', title: '' };
+  return { name: m.name||'', dept: m.dept||'', title: m.title||'' };
+}
+
+function goTab(id, btn, bnId) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.ttab-btn').forEach(b => b.classList.remove('on'));
+  document.getElementById('tab-' + id).classList.add('on');
+  if (btn) btn.classList.add('on');
+  const ttMap = {'form':'tt-form','history':'tt-history','export':'tt-export','members':'tt-members'};
+  const ttEl = document.getElementById(ttMap[id]);
+  if (ttEl) ttEl.classList.add('on');
+  if (id === 'history') renderHist();
+  if (id === 'members') renderMembers();
+}
+
+function buildSelects() {
+  const sorted = [...members].map(toObj).sort((a, b) =>
+    a.name.localeCompare(b.name, 'zh-Hant-TW', { sensitivity: 'base' })
+  );
+  const fDrvFList = document.getElementById('fDrvFList');
+  if (fDrvFList) fDrvFList.innerHTML = sorted.map(m => `<option value="${m.name}">`).join('');
+  const exDrvList = document.getElementById('exDrvList');
+  if (exDrvList) exDrvList.innerHTML = sorted.map(m => `<option value="${m.name}">`).join('');
+  // 驅動駕駛下拉刷新
+  filterDriverByDept();
+}
+
+// ── 駕駛人員自訂下拉 ──
+let driverActiveIdx = -1;
+
+function getFilteredDrivers(keyword) {
+  const dept = (document.getElementById('fDept') || {}).value || '';
+  const kw = (keyword || '').trim().toLowerCase();
+  return [...members].map(toObj)
+    .filter(m => {
+      if (dept && m.dept !== dept) return false;
+      if (kw && !m.name.includes(kw) && !m.title.toLowerCase().includes(kw)) return false;
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant-TW', { sensitivity: 'base' }));
+}
+
+function filterDriverByDept() {
+  const kw = (document.getElementById('fDriver') || {}).value || '';
+  renderDriverDropdown(kw, false);
+}
+
+function renderDriverDropdown(keyword, open) {
+  const dd = document.getElementById('driverDropdown');
+  if (!dd) return;
+  const list = getFilteredDrivers(keyword);
+  if (!list.length) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+  dd.innerHTML = list.map((m, i) => `
+    <div class="driver-opt" data-name="${m.name}" data-idx="${i}"
+      onmousedown="pickDriver('${m.name.replace(/'/g,"\\\\'")}')">
+      <span class="driver-opt-name">${m.name}</span>
+      ${m.title ? `<span class="driver-opt-title">${m.title}</span>` : ''}
+      ${m.dept ? `<span class="driver-opt-dept">${m.dept}</span>` : ''}
+    </div>`).join('');
+  driverActiveIdx = -1;
+  if (open) dd.classList.add('open');
+}
+
+function pickDriver(name) {
+  document.getElementById('fDriver').value = name;
+  document.getElementById('driverDropdown').classList.remove('open');
+  checkDriver();
+}
+
+function onDriverFocus() {
+  renderDriverDropdown(document.getElementById('fDriver').value, true);
+}
+
+function onDriverBlur() {
+  // 延遲關閉讓 mousedown 先觸發
+  setTimeout(() => {
+    document.getElementById('driverDropdown').classList.remove('open');
+    checkDriverFull();
+  }, 180);
+}
+
+function onDriverInput() {
+  renderDriverDropdown(document.getElementById('fDriver').value, true);
+  checkDriver();
+}
+
+function onDriverKeydown(e) {
+  const dd = document.getElementById('driverDropdown');
+  const opts = dd.querySelectorAll('.driver-opt');
+  if (!dd.classList.contains('open') || !opts.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    driverActiveIdx = Math.min(driverActiveIdx + 1, opts.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    driverActiveIdx = Math.max(driverActiveIdx - 1, 0);
+  } else if (e.key === 'Enter' && driverActiveIdx >= 0) {
+    e.preventDefault();
+    pickDriver(opts[driverActiveIdx].dataset.name);
+    return;
+  } else if (e.key === 'Escape') {
+    dd.classList.remove('open'); return;
+  }
+  opts.forEach((o, i) => o.classList.toggle('active', i === driverActiveIdx));
+  if (driverActiveIdx >= 0) opts[driverActiveIdx].scrollIntoView({ block: 'nearest' });
+}
+
+function checkDriver() {
+  const val = document.getElementById('fDriver').value.trim();
+  const warn = document.getElementById('driverWarn');
+  if (!val) { warn.style.display = 'none'; return; }
+  const names = members.map(m => toObj(m).name);
+  warn.style.display = (names.length > 0 && !names.includes(val)) ? 'flex' : 'none';
+}
+function checkDriverFull() { checkDriver(); }
+
+// ── 計算邏輯（保持原版）──
+function parseDate(d) {
+  if (!d) return '';
+  const s = String(d);
+  const m = s.match(/(\\d{4})-(\\d{2})-(\\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : s;
+}
+
+function onOilPriceInput() {
+  const liters = parseFloat(document.getElementById('fFixedLiters').value) || 0;
+  const oil = parseFloat(document.getElementById('fOilPrice').value) || 0;
+  const fsEl = document.getElementById('fFuelSubsidy');
+  if (liters > 0) {
+    // 定額模式：公升數 × 油價
+    if (oil > 0) { fsEl.value = Math.round(liters * oil); fsEl.className = 'fuelsubsidy loaded'; }
+    else { fsEl.value = 0; fsEl.className = 'fuelsubsidy'; }
+  } else {
+    // 里程模式
+    recalc();
+  }
+}
+
+function onFixedLitersInput() {
+  const liters = parseFloat(document.getElementById('fFixedLiters').value) || 0;
+  const oil = parseFloat(document.getElementById('fOilPrice').value) || 0;
+  const mileSection = document.getElementById('mileSection');
+  const labelS = document.getElementById('labelOdoS');
+  const labelE = document.getElementById('labelOdoE');
+  const fsEl = document.getElementById('fFuelSubsidy');
+  if (liters > 0) {
+    // 定額模式：鎖定里程區塊
+    mileSection.style.opacity = '0.4'; mileSection.style.pointerEvents = 'none';
+    document.getElementById('fOdoS').value = ''; document.getElementById('fOdoE').value = '';
+    document.getElementById('fMile').value = ''; document.getElementById('fMile').className = 'auto';
+    document.getElementById('mileAlert').className = 'mile-alert'; mileValid = true;
+    if (labelS) labelS.textContent = '出發里程 (km)';
+    if (labelE) labelE.textContent = '返回里程 (km)';
+    // 計算補助：公升數 × 油價
+    if (oil > 0) { fsEl.value = Math.round(liters * oil); fsEl.className = 'fuelsubsidy loaded'; }
+    else { fsEl.value = 0; fsEl.className = 'fuelsubsidy'; }
+    // 共乘費也要更新
+    const hasPax = [...document.querySelectorAll('#paxList .pax-row input')].some(i => i.value.trim() !== '');
+    const cEl = document.getElementById('fCarpool');
+    cEl.value = hasPax ? CARPOOL_FEE : 0;
+    cEl.className = 'carpoolcost' + (hasPax ? ' active' : '');
+  } else {
+    // 里程模式：恢復里程區塊
+    mileSection.style.opacity = ''; mileSection.style.pointerEvents = '';
+    if (labelS) labelS.textContent = '出發里程 (km) *';
+    if (labelE) labelE.textContent = '返回里程 (km) *';
+    recalc();
+  }
+}
+
+function recalc() {
+  const s = parseFloat(document.getElementById('fOdoS').value);
+  const e = parseFloat(document.getElementById('fOdoE').value);
+  const mEl = document.getElementById('fMile');
+  const aEl = document.getElementById('mileAlert');
+  const aTxt = document.getElementById('mileAlertText');
+  mileValid = true;
+  const hasS = document.getElementById('fOdoS').value !== '';
+  const hasE = document.getElementById('fOdoE').value !== '';
+  if (!hasS || !hasE || isNaN(s) || isNaN(e)) { mEl.value = ''; mEl.className = 'auto'; aEl.className = 'mile-alert'; calcCosts(0); return; }
+  const km = e - s;
+  if (km < 0) {
+    mEl.value = km; mEl.className = 'auto err'; mileValid = false;
+    aEl.className = 'mile-alert err show';
+    aTxt.textContent = `錯誤：返回里程（${e}）小於出發里程（${s}）`;
+    calcCosts(0); return;
+  }
+  if (km === 0) {
+    mEl.value = 0; mEl.className = 'auto warn'; mileValid = false;
+    aEl.className = 'mile-alert warn show';
+    aTxt.textContent = '提醒：行駛公里數為 0，請確認里程是否正確';
+    calcCosts(0); return;
+  }
+  if (km > 300) {
+    mEl.value = km; mEl.className = 'auto err'; mileValid = false;
+    aEl.className = 'mile-alert err show';
+    aTxt.textContent = `錯誤：行駛公里數 ${km} km 超過 300 km，無法儲存`;
+    calcCosts(km); return;
+  }
+  mEl.value = km; mEl.className = 'auto ok'; aEl.className = 'mile-alert';
+  calcCosts(km);
+}
+
+function calcCosts(km) {
+  const hasPax = [...document.querySelectorAll('#paxList .pax-row input')].some(i => i.value.trim() !== '');
+  const cEl = document.getElementById('fCarpool');
+  cEl.value = hasPax ? CARPOOL_FEE : 0;
+  cEl.className = 'carpoolcost' + (hasPax ? ' active' : '');
+  const oil = parseFloat(document.getElementById('fOilPrice').value) || 0;
+  const fsEl = document.getElementById('fFuelSubsidy');
+  if (km > 0 && oil > 0) { fsEl.value = Math.round(km / 8 * oil); fsEl.className = 'fuelsubsidy loaded'; }
+  else { fsEl.value = 0; fsEl.className = 'fuelsubsidy'; }
+}
+
+function addPax() {
+  const list = document.getElementById('paxList');
+  const n = list.children.length + 1;
+  const row = document.createElement('div'); row.className = 'pax-row';
+  row.innerHTML = `<span class="pax-n">${n}</span><input type="text" placeholder="代號 ${n}" maxlength="1" lang="zh-TW" inputmode="text" oninput="recalc()"><button class="btn-rm" onclick="rmPax(this)">×</button>`;
+  list.appendChild(row); recalc();
+}
+function rmPax(btn) {
+  const list = document.getElementById('paxList');
+  if (list.children.length <= 1) { btn.closest('.pax-row').querySelector('input').value = ''; recalc(); return; }
+  btn.closest('.pax-row').remove();
+  [...list.querySelectorAll('.pax-n')].forEach((el, i) => el.textContent = i + 1);
+  recalc();
+}
+
+// ── 儲存 ──
+async function saveRec() {
+  const date = document.getElementById('fDate').value;
+  const driver = document.getElementById('fDriver').value;
+  const dept = document.getElementById('fDept').value.trim();
+  const odoS = document.getElementById('fOdoS').value;
+  const odoE = document.getElementById('fOdoE').value;
+  const oil = parseFloat(document.getElementById('fOilPrice').value) || 0;
+  const fixedLiters = parseFloat(document.getElementById('fFixedLiters').value) || 0;
+  const isFixed = fixedLiters > 0;
+  if (!date || !driver || !dept) { toast('請填寫所有必填欄位（*）', 'er'); return; }
+  if (!isFixed && (!odoS || !odoE)) { toast('未填入定額公升數時，出發里程及返回里程為必填', 'er'); return; }
+  if (members.length > 0) {
+    const names = members.map(m => toObj(m).name);
+    if (!names.includes(driver.trim())) {
+      if (!confirm(`「${driver}」不在人員名單中，確定要以此姓名儲存記錄嗎？`)) return;
+    }
+  }
+  if (!oil) { toast('請填入當日 95 無鉛油價再儲存', 'er'); return; }
+  if (!isFixed) {
+    if (!mileValid && parseFloat(odoE) - parseFloat(odoS) < 0) { toast('返回里程不可小於出發里程', 'er'); return; }
+    if (parseFloat(odoE) === parseFloat(odoS)) { toast('行駛公里數為 0，無法儲存', 'er'); return; }
+    if (parseFloat(odoE) - parseFloat(odoS) > 300) { toast('行駛公里數超過 300 km，無法儲存', 'er'); return; }
+  }
+  const pax = [...document.querySelectorAll('#paxList .pax-row input')].map(i => i.value.trim()).filter(Boolean);
+  const carpool = pax.length > 0 ? CARPOOL_FEE : 0;
+  const park = +document.getElementById('fPark').value || 0;
+  const toll = +document.getElementById('fToll').value || 0;
+  const fuel = isFixed ? Math.round(fixedLiters * oil) : (+document.getElementById('fFuelSubsidy').value || 0);
+  const rec = {
+    id: Date.now(), date, driver, dept,
+    purpose: document.getElementById('fPurpose').value.trim(),
+    locFrom: document.getElementById('fLocFrom').value.trim(),
+    locTo:   document.getElementById('fLocTo').value.trim(),
+    odoStart: isFixed ? 0 : +odoS, odoEnd: isFixed ? 0 : +odoE,
+    mileage: isFixed ? 0 : (parseFloat(document.getElementById('fMile').value) || 0),
+    fixedLiters: isFixed ? fixedLiters : 0,
+    parking: park, toll, carpoolCost: carpool,
+    oilPrice: oil, fuelSubsidy: fuel,
+    totalCost: park + toll + carpool + fuel,
+    passengers: pax, passengerCount: pax.length,
+    note: document.getElementById('fNote').value.trim(),
+    photo1: photoData[1] || '', photo2: photoData[2] || ''
+  };
+  setSyncState('loading', editingId ? '更新中…' : '儲存中…');
+  try {
+    if (editingId) {
+      rec.id = editingId;
+      const now = new Date();
+      rec.updatedAt = `${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+      rec.updatedBy = window._editorName || '';
+      await api({ action: 'updateRecord', data: JSON.stringify(rec) });
+      const idx = records.findIndex(r => String(r.id) === String(editingId));
+      if (idx >= 0) records[idx] = rec;
+      setSyncState('ok', '已更新'); updateBadge();
+      toast('記錄已修改並同步！', 'ok');
+      editingId = null;
+      const saveBtn = document.getElementById('saveBtn');
+      saveBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg> 儲存並同步';
+      saveBtn.style.background = '';
+      const cancelBtn = document.getElementById('cancelEditBtn');
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      resetForm(); goTab('history'); renderHist();
+    } else {
+      await api({ action: 'addRecord', data: JSON.stringify(rec) });
+      records.unshift(rec); setSyncState('ok', '已同步'); updateBadge();
+      toast('記錄已儲存並同步！', 'ok'); resetForm();
+    }
+  } catch(e) {
+    setSyncState('error', '同步失敗'); toast('儲存失敗：' + e.message, 'er');
+  }
+}
+
+function resetForm() {
+  editingId = null;
+  const saveBtn = document.getElementById('saveBtn');
+  if (saveBtn) { saveBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17,21 17,13 7,13 7,21"/><polyline points="7,3 7,8 15,8"/></svg> 儲存並同步'; saveBtn.style.background = ''; }
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  ['fOdoS','fOdoE','fPark','fToll','fOilPrice','fLocFrom','fLocTo','fNote','fDriver','fFixedLiters'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('fPurpose').value = '';
+  document.getElementById('fDept').value = '';
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+  const dw = document.getElementById('driverWarn'); if (dw) dw.style.display = 'none';
+  const dd = document.getElementById('driverDropdown'); if (dd) dd.classList.remove('open');
+  const ms = document.getElementById('mileSection');
+  if (ms) { ms.style.opacity = ''; ms.style.pointerEvents = ''; }
+  const labelS = document.getElementById('labelOdoS'); if (labelS) labelS.textContent = '出發里程 (km) *';
+  const labelE = document.getElementById('labelOdoE'); if (labelE) labelE.textContent = '返回里程 (km) *';
+  const m = document.getElementById('fMile'); m.value = ''; m.className = 'auto';
+  document.getElementById('mileAlert').className = 'mile-alert';
+  document.getElementById('fCarpool').value = 0; document.getElementById('fCarpool').className = 'carpoolcost';
+  document.getElementById('fFuelSubsidy').value = 0; document.getElementById('fFuelSubsidy').className = 'fuelsubsidy';
+  mileValid = true; clearPhoto(1); clearPhoto(2);
+  document.getElementById('paxList').innerHTML = ''; addPax();
+}
+
+function updateBadge() {
+  const count = records.length;
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    if (b.textContent.replace(/\\s*\\(\\d+\\)/, '').trim() === '歷史記錄')
+      b.textContent = `歷史記錄 (${count})`;
+  });
+  const ttBadge = document.getElementById('ttBadge');
+  const ttHistory = document.getElementById('tt-history');
+  if (ttBadge) ttBadge.textContent = count > 0 ? count : '';
+  if (ttHistory) ttHistory.classList.toggle('has-badge', count > 0);
+}
+
+// ── 歷史記錄渲染 ──
+function renderHist() {
+  const mn = document.getElementById('fMonth').value;
+  const drv = document.getElementById('fDrvF').value;
+  const dept = document.getElementById('fDeptF').value;
+  const q = (document.getElementById('fSearch').value || '').toLowerCase();
+  const f = records.filter(r => {
+    if (mn && !parseDate(r.date).startsWith(mn)) return false;
+    if (drv && r.driver !== drv) return false;
+    if (dept && r.dept !== dept) return false;
+    if (q && !(r.purpose || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const totMile = f.reduce((s, r) => s + (+r.mileage || 0), 0);
+  const totCost = f.reduce((s, r) => s + (+r.totalCost || 0), 0);
+  const totFuel = f.reduce((s, r) => s + (+r.fuelSubsidy || 0), 0);
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat-card sc-blue"><div class="stat-lbl">篩選筆數</div><div class="stat-val">${f.length} 筆</div></div>
+    <div class="stat-card sc-green"><div class="stat-lbl">行駛里程</div><div class="stat-val">${(+totMile).toFixed(0)} km</div></div>
+    <div class="stat-card sc-pink"><div class="stat-lbl">油料補助合計</div><div class="stat-val">NT$${Math.round(+totFuel).toLocaleString()}</div></div>
+    <div class="stat-card sc-amber"><div class="stat-lbl">總費用</div><div class="stat-val">NT$${Math.round(+totCost).toLocaleString()}</div></div>
+  `;
+  if (!f.length) {
+    document.getElementById('recList').innerHTML = `<div class="empty"><p>尚無符合的記錄</p><span>調整篩選條件或新增記錄</span></div>`;
+    return;
+  }
+  document.getElementById('recList').innerHTML = f.map(r => {
+    const ps = (r.passengers || []).length ? (r.passengers || []).join('、') : '';
+    return `<div class="rec-card">
+      <div class="rec-head">
+        <div class="avatar">${(r.driver || '').slice(0, 2)}</div>
+        <div class="rec-info">
+          <div class="rec-driver">${r.driver}</div>
+          <div class="rec-sub">${parseDate(r.date)} · ${r.dept || ''}${r.purpose ? ' · ' + r.purpose : ''}${(r.locFrom||r.locTo) ? ' · ' + (r.locFrom||'') + (r.locFrom&&r.locTo?' → ':'') + (r.locTo||'') : ''}</div>
+        </div>
+        <div class="rec-amount">NT$${Math.round(+r.totalCost || 0).toLocaleString()}</div>
+      </div>
+      <div class="rec-body">
+        ${(parseFloat(r.fixedLiters) > 0 || (parseFloat(r.mileage) === 0 && parseFloat(r.fuelSubsidy) > 0))
+          ? `<div class="rs"><div class="rs-l">定額油料公升數</div><div class="rs-v amber" style="color:var(--amber-dark);font-weight:700">${parseFloat(r.fixedLiters) > 0 ? parseFloat(r.fixedLiters) + ' 公升' : '—'}</div></div>
+        <div class="rs"><div class="rs-l">出發里程</div><div class="rs-v" style="color:var(--text-muted)">—</div></div>
+        <div class="rs"><div class="rs-l">返回里程</div><div class="rs-v" style="color:var(--text-muted)">—</div></div>`
+          : `<div class="rs"><div class="rs-l">出發里程</div><div class="rs-v">${(+r.odoStart).toLocaleString()} km</div></div>
+        <div class="rs"><div class="rs-l">返回里程</div><div class="rs-v">${(+r.odoEnd).toLocaleString()} km</div></div>
+        <div class="rs"><div class="rs-l">行駛公里</div><div class="rs-v">${(+r.mileage).toFixed(0)} km</div></div>`
+        }
+        <div class="rs"><div class="rs-l">停車費</div><div class="rs-v">NT$${(+r.parking || 0).toLocaleString()}</div></div>
+        <div class="rs"><div class="rs-l">過路費/ETC</div><div class="rs-v">NT$${(+r.toll || 0).toLocaleString()}</div></div>
+        <div class="rs"><div class="rs-l">共乘費用</div><div class="rs-v">NT$${(+r.carpoolCost || 0).toLocaleString()}</div></div>
+        <div class="rs"><div class="rs-l">油料補助</div><div class="rs-v">NT$${Math.round(+r.fuelSubsidy || 0).toLocaleString()}</div></div>
+      </div>
+      <div class="rec-tags">
+        <span class="tag tg-b">${r.dept || ''}</span>
+        ${r.oilPrice ? `<span class="tag tg-a">95無鉛 NT$${r.oilPrice}/L</span>` : ''}
+        ${+r.passengerCount > 0 ? `<span class="tag tg-p">共乘 ${r.passengerCount} 人</span>` : ''}
+        ${ps ? `<span class="tag tg-p">${ps}</span>` : ''}
+        ${r.note ? `<span class="tag tg-b">備註</span>` : ''}
+        ${(r.photo1||r.photo2) ? `<span class="tag tg-b">📷 ${[r.photo1,r.photo2].filter(Boolean).length} 張</span>` : ''}
+      </div>
+      <div class="rec-foot">
+        <button class="btn-edit" onclick="editRec(${r.id})">修改記錄</button>
+        <button class="btn-del" onclick="delRec(${r.id})">刪除記錄</button>
+      </div>
+      ${(r.photo1||r.photo2) ? `<div class="rec-photos">
+        ${r.photo1?`<div class="rec-photo" onclick="openLightboxById(${r.id},1)"><img src="${r.photo1}" alt="照片1" loading="lazy"></div>`:''}
+        ${r.photo2?`<div class="rec-photo" onclick="openLightboxById(${r.id},2)"><img src="${r.photo2}" alt="照片2" loading="lazy"></div>`:''}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── 修改記錄 ──
+let editingId = null;
+function editRec(id) { showEditorModal(id); }
+
+function showEditorModal(id) {
+  let modal = document.getElementById('editorModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'editorModal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.45);align-items:center;justify-content:center';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);width:300px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+        <div style="background:var(--blue-light);padding:18px 20px 14px;border-bottom:1px solid var(--border)">
+          <div style="font-size:15px;font-weight:700;color:var(--blue-dark)">請輸入修改人員姓名</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:3px">此姓名將記錄於最後異動者欄位</div>
+        </div>
+        <div style="padding:16px 20px">
+          <input id="editorNameInput" type="text" placeholder="請輸入您的姓名" lang="zh-TW" inputmode="text"
+            style="width:100%;box-sizing:border-box;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;font-family:inherit"
+            onkeydown="if(event.key==='Enter')confirmEditor()">
+          <div id="editorNameErr" style="display:none;font-size:11px;color:var(--red);margin-top:6px">請輸入修改人員姓名</div>
+        </div>
+        <div style="padding:0 20px 16px;display:flex;gap:8px;justify-content:flex-end">
+          <button onclick="cancelEditorModal()" style="padding:7px 16px;border:1px solid var(--border);border-radius:var(--radius);background:none;font-size:13px;font-family:inherit;cursor:pointer">取消</button>
+          <button onclick="confirmEditor()" style="padding:7px 20px;background:#1a56a4;color:white;border:none;border-radius:var(--radius);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer">確認</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal._editId = id;
+  document.getElementById('editorNameInput').value = '';
+  document.getElementById('editorNameErr').style.display = 'none';
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('editorNameInput').focus(), 100);
+}
+function cancelEditorModal() { document.getElementById('editorModal').style.display = 'none'; }
+function confirmEditor() {
+  const modal = document.getElementById('editorModal');
+  const name = document.getElementById('editorNameInput').value.trim();
+  if (!name) { document.getElementById('editorNameErr').style.display = 'block'; return; }
+  modal.style.display = 'none';
+  doEditRec(modal._editId, name);
+}
+function doEditRec(id, editorName) {
+  const r = records.find(r => String(r.id) === String(id));
+  if (!r) return;
+  editingId = id; window._editorName = editorName;
+  goTab('form');
+  document.getElementById('fDate').value = r.date || '';
+  document.getElementById('fDept').value = r.dept || '';
+  filterDriverByDept();
+  document.getElementById('fDriver').value = r.driver || '';
+  document.getElementById('fPurpose').value = r.purpose || '';
+  document.getElementById('fLocFrom').value = r.locFrom || '';
+  document.getElementById('fLocTo').value = r.locTo || '';
+  document.getElementById('fOilPrice').value = r.oilPrice || '';
+  document.getElementById('fNote').value = r.note || '';
+  const isFixed = +(r.fixedLiters || 0) > 0;
+  if (isFixed) {
+    document.getElementById('fFixedLiters').value = r.fixedLiters || '';
+    document.getElementById('fOdoS').value = ''; document.getElementById('fOdoE').value = '';
+  } else {
+    document.getElementById('fFixedLiters').value = '';
+    document.getElementById('fOdoS').value = r.odoStart || ''; document.getElementById('fOdoE').value = r.odoEnd || '';
+  }
+  document.getElementById('fPark').value = r.parking || 0;
+  document.getElementById('fToll').value = r.toll || 0;
+  document.getElementById('paxList').innerHTML = '';
+  const pax = Array.isArray(r.passengers) ? r.passengers : [];
+  if (pax.length > 0) {
+    pax.forEach(() => addPax());
+    document.querySelectorAll('#paxList .pax-row input').forEach((inp, i) => { inp.value = pax[i] || ''; });
+  } else { addPax(); }
+  recalc();
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.textContent = '儲存修改'; saveBtn.style.background = '#854F0B';
+  let cancelBtn = document.getElementById('cancelEditBtn');
+  if (!cancelBtn) {
+    cancelBtn = document.createElement('button');
+    cancelBtn.id = 'cancelEditBtn'; cancelBtn.className = 'btn-secondary';
+    cancelBtn.textContent = '取消修改'; cancelBtn.onclick = cancelEdit;
+    saveBtn.parentNode.insertBefore(cancelBtn, saveBtn.nextSibling);
+  }
+  cancelBtn.style.display = 'inline-flex';
+  toast(`已帶入資料（修改人：${editorName}）`, 'in');
+}
+function cancelEdit() {
+  editingId = null; resetForm();
+  toast('已取消修改', 'in');
+}
+
+async function delRec(id) {
+  if (!confirm('確定要刪除這筆記錄？')) return;
+  setSyncState('loading', '刪除中…');
+  try {
+    await api({ action: 'deleteRecord', id: String(id) });
+    records = records.filter(r => String(r.id) !== String(id));
+    setSyncState('ok', '已同步'); updateBadge(); renderHist();
+    toast('已刪除', 'ok');
+  } catch(e) { setSyncState('error', '刪除失敗'); toast('刪除失敗', 'er'); }
+}
+
+// ── 匯出 ──
+function getExp(from, to, drv, dept) {
+  return records.filter(r => {
+    const ym = parseDate(r.date).slice(0, 7);
+    if (from && ym < from) return false;
+    if (to && ym > to) return false;
+    if (drv && r.driver !== drv) return false;
+    if (dept && r.dept !== dept) return false;
+    return true;
+  });
+}
+function openMotoSystem() {
+  const dept = document.getElementById('exDept').value || document.getElementById('fDept').value || '';
+  const from = document.getElementById('exFrom').value || '';
+  const to   = document.getElementById('exTo').value   || '';
+  // 月份轉換為日期（YYYY-MM → YYYY-MM-01 / YYYY-MM-最後一天）
+  function monthToFrom(m) { return m ? m + '-01' : ''; }
+  function monthToTo(m) {
+    if (!m) return '';
+    const [y, mo] = m.split('-').map(Number);
+    const lastDay = new Date(y, mo, 0).getDate();
+    return m + '-' + String(lastDay).padStart(2, '0');
+  }
+  const params = new URLSearchParams();
+  if (dept) params.set('dept', dept);
+  if (from) params.set('from', monthToFrom(from));
+  if (to)   params.set('to',   monthToTo(to));
+  const base = 'https://a0955944828.github.io/fuel-calculator';
+  const url  = params.toString() ? base + '?' + params.toString() : base;
+  window.open(url, '_blank');
+}
+
+function previewCount() {
+  const d = getExp(document.getElementById('exFrom').value, document.getElementById('exTo').value, document.getElementById('exDrv').value, document.getElementById('exDept').value);
+  document.getElementById('exPreview').textContent = `共 ${d.length} 筆記錄符合條件`;
+}
+let freqChartInstance = null;
+function renderFreqChart() {
+  const data = getExp(document.getElementById('exFrom').value, document.getElementById('exTo').value, document.getElementById('exDrv').value, document.getElementById('exDept').value);
+  if (!data.length) { toast('沒有符合條件的記錄', 'er'); return; }
+  const freq = {};
+  data.forEach(r => {
+    if (!freq[r.driver]) freq[r.driver] = { name: r.driver, dept: r.dept||'', count: 0, cost: 0 };
+    freq[r.driver].count++; freq[r.driver].cost += +(r.totalCost||0);
+  });
+  const sorted = Object.values(freq).sort((a, b) => a.count !== b.count ? b.count - a.count : a.name.localeCompare(b.name, 'zh-Hant-TW'));
+  sorted.forEach((x, i) => { x.rank = i + 1; });
+  const totalTrips = sorted.reduce((s, x) => s + x.count, 0);
+  const totalCost  = sorted.reduce((s, x) => s + x.cost, 0);
+  const avg = sorted.length ? (totalTrips / sorted.length).toFixed(1) : 0;
+  const area = document.getElementById('freqChartArea');
+  area.style.display = 'block';
+  area.querySelector('.freq-stats').innerHTML = `
+    <div style="background:var(--blue-light);border-radius:8px;padding:10px 16px;text-align:center"><div style="font-size:11px;color:var(--blue-dark);margin-bottom:2px">總出車次數</div><div style="font-size:22px;font-weight:700;color:var(--blue-dark)">${totalTrips}</div></div>
+    <div style="background:var(--green-light);border-radius:8px;padding:10px 16px;text-align:center"><div style="font-size:11px;color:var(--green-dark);margin-bottom:2px">出車人數</div><div style="font-size:22px;font-weight:700;color:var(--green-dark)">${sorted.length}</div></div>
+    <div style="background:var(--amber-light);border-radius:8px;padding:10px 16px;text-align:center"><div style="font-size:11px;color:var(--amber-dark);margin-bottom:2px">總申請費用</div><div style="font-size:18px;font-weight:700;color:var(--amber-dark)">${Math.round(totalCost).toLocaleString()} 元</div></div>
+    <div style="background:var(--gray-light);border-radius:8px;padding:10px 16px;text-align:center"><div style="font-size:11px;color:var(--gray);margin-bottom:2px">平均出車</div><div style="font-size:22px;font-weight:700;color:var(--gray)">${avg}</div></div>
+  `;
+  if (freqChartInstance) { freqChartInstance.destroy(); freqChartInstance = null; }
+  const ctx = document.getElementById('freqChart').getContext('2d');
+  freqChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(x => x.name), datasets: [{ label: '出車次數', data: sorted.map(x => x.count), backgroundColor: '#378ADD', borderRadius: 6, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, layout: { padding: { top: 36 } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: {
+        title: (items) => `${items[0].label}（${sorted[items[0].dataIndex].dept}）　排名 #${sorted[items[0].dataIndex].rank}`,
+        label: (item) => ` 出車 ${item.parsed.y} 次`,
+        afterLabel: (item) => ` 總費用 ${Math.round(sorted[item.dataIndex].cost).toLocaleString()} 元`
+      }}},
+      scales: { x: { grid: { display: false }, ticks: { font: { size: 13 }, color: '#444441' } }, y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 12 }, color: '#888780' }, grid: { color: 'rgba(0,0,0,0.05)' } } }
+    },
+    plugins: [{ id: 'costLabel', afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      chart.getDatasetMeta(0).data.forEach((bar, i) => {
+        ctx.save(); ctx.font = '500 11px sans-serif'; ctx.fillStyle = '#0C447C'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(`${Math.round(sorted[i].cost).toLocaleString()} 元`, bar.x, bar.y - 4); ctx.restore();
+      });
+    }}]
+  });
+}
+
+function doExport() {
+  const from = document.getElementById('exFrom').value, to = document.getElementById('exTo').value;
+  const drv = document.getElementById('exDrv').value, dept = document.getElementById('exDept').value;
+  const data = getExp(from, to, drv, dept);
+  if (!data.length) { toast('沒有符合條件的記錄', 'er'); return; }
+  data.sort((a, b) => { const da = parseDate(a.date)||'', db = parseDate(b.date)||''; return da < db ? -1 : da > db ? 1 : 0; });
+  const wb = XLSX.utils.book_new();
+  function fmtDate(d) {
+    if (!d) return ''; const s = String(d); const m = s.match(/(\\d{4})[^\\d](\\d{2})[^\\d](\\d{2})/);
+    return m ? `${m[1]}/${m[2]}/${m[3]}` : s;
+  }
+  function fmtCreatedAt(id) {
+    if (!id) return ''; const d = new Date(+id); if (isNaN(d.getTime())) return '';
+    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+  const dH = ['日期','駕駛人員','盤點課別','行程目的','出發地點','目的地點','出發里程(km)','返回里程(km)','行駛公里','定額油料(公升)','停車費(元)','過路費/ETC(元)','共乘費用(元)','95無鉛油價(元/L)','油料補助費用(元)','合計費用(元)','共乘人數','乘客姓名','建檔日期時間','最後異動時間','最後異動者'];
+  const dR = data.map(r => [fmtDate(r.date),r.driver,r.dept||'',r.purpose,r.locFrom||'',r.locTo||'',+r.odoStart,+r.odoEnd,+r.mileage,+(r.fixedLiters||0),+r.parking,+r.toll,+(r.carpoolCost||0),+(r.oilPrice||0),Math.round(+(r.fuelSubsidy||0)),Math.round(+r.totalCost),+r.passengerCount,(r.passengers||[]).join('、'),fmtCreatedAt(r.id),r.updatedAt||'',r.updatedBy||'']);
+  const ws1 = XLSX.utils.aoa_to_sheet([dH, ...dR]);
+  ws1['!cols'] = [{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:13},{wch:12},{wch:14},{wch:14},{wch:12},{wch:8},{wch:20},{wch:14},{wch:14},{wch:12}];
+  styleSheet(ws1, new Set([10,11,12,13,14,15]), new Set([0,18,19]));
+  XLSX.utils.book_append_sheet(wb, ws1, '明細表');
+
+  const dm = {};
+  data.forEach(r => {
+    if (!dm[r.driver]) dm[r.driver]={dept:r.dept||'',d:r.driver,c:0,km:0,pk:0,tl:0,cp:0,fs:0,tot:0};
+    const x=dm[r.driver]; x.c++;x.km+=+r.mileage;x.pk+=+r.parking;x.tl+=+r.toll;x.cp+=+(r.carpoolCost||0);x.fs+=+(r.fuelSubsidy||0);x.tot+=+r.totalCost;
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([['盤點課別','駕駛人員','記錄筆數','行駛里程(km)','停車費(元)','過路費/ETC(元)','共乘費用(元)','油料補助費用(元)','合計費用(元)'],...Object.values(dm).map(x=>[x.dept,x.d,x.c,x.km,x.pk,x.tl,x.cp,x.fs,x.tot])]);
+  ws2['!cols'] = [{wch:10},{wch:12},{wch:10},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12}];
+  styleSheet(ws2, new Set([4,5,6,7,8]), new Set());
+  XLSX.utils.book_append_sheet(wb, ws2, '人員彙總');
+
+  const mm = {};
+  data.forEach(r => {
+    const key = `${r.dept||''}__${fmtDate(r.date).slice(0,7)}`;
+    if (!mm[key]) mm[key]={dept:r.dept||'',m:fmtDate(r.date).slice(0,7),c:0,km:0,pk:0,tl:0,cp:0,fs:0,tot:0};
+    const x=mm[key]; x.c++;x.km+=+r.mileage;x.pk+=+r.parking;x.tl+=+r.toll;x.cp+=+(r.carpoolCost||0);x.fs+=+(r.fuelSubsidy||0);x.tot+=+r.totalCost;
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([['盤點課別','年月','記錄筆數','行駛里程(km)','停車費(元)','過路費/ETC(元)','共乘費用(元)','油料補助費用(元)','合計費用(元)'],...Object.values(mm).sort((a,b)=>a.dept.localeCompare(b.dept,'zh-Hant-TW')||a.m.localeCompare(b.m)).map(x=>[x.dept,x.m,x.c,x.km,x.pk,x.tl,x.cp,x.fs,x.tot])]);
+  ws3['!cols'] = [{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:14},{wch:12},{wch:14},{wch:12}];
+  styleSheet(ws3, new Set([4,5,6,7,8]), new Set([1]));
+  XLSX.utils.book_append_sheet(wb, ws3, '月份統計');
+
+  const oilRows = [['課別','品名','數量','單價','金額','稅額','備註']];
+  data.forEach(r => {
+    const d = fmtDate(r.date), mmdd = d.slice(5);
+    const liters = parseFloat(r.fixedLiters)||0, mileage = parseFloat(r.mileage)||0;
+    const oilPrice = parseFloat(r.oilPrice)||0, fuelSubsidy = parseFloat(r.fuelSubsidy)||0;
+    const carpool = parseFloat(r.carpoolCost)||0, parking = parseFloat(r.parking)||0, toll = parseFloat(r.toll)||0;
+    const paxNames = (r.passengers||[]).join('/');
+    const calcLiters = liters > 0 ? liters : (mileage > 0 ? Math.round(mileage / 8) : 0);
+    if (fuelSubsidy > 0) oilRows.push([r.dept||'', `${mmdd}-${r.locFrom||'出發地'}-${r.locTo||'目的地'}`, calcLiters>0?`${calcLiters}`:'', oilPrice>0?oilPrice:'', fuelSubsidy, '', liters > 0 ? `${r.driver||\''}-定額${liters}L` : (mileage > 0 ? `${r.driver||\'\'}-${mileage}km/8L` : (r.driver||''))]);
+    if (carpool > 0) oilRows.push([r.dept||'', `${mmdd}/共乘費(元)`, '', '', carpool, '', paxNames?`共乘人員-${paxNames}`:'']);
+    if (parking > 0) oilRows.push([r.dept||'', `${mmdd}/停車費(元)`, '', '', parking, '', '']);
+    if (toll > 0) oilRows.push([r.dept||'', `${mmdd}//ETC(元)`, '', '', toll, '', '']);
+  });
+  const ws4 = XLSX.utils.aoa_to_sheet(oilRows);
+  ws4['!cols'] = [{wch:10},{wch:30},{wch:8},{wch:10},{wch:12},{wch:8},{wch:30}];
+  styleSheet(ws4, new Set([4]), new Set());
+  XLSX.utils.book_append_sheet(wb, ws4, '油料申請單');
+
+  const months = [...new Set(data.map(r => fmtDate(r.date).slice(0,7)))].sort();
+  const freq = {};
+  data.forEach(r => {
+    if (!freq[r.driver]) freq[r.driver] = { driver: r.driver, dept: r.dept||'', total: 0, cost: 0 };
+    freq[r.driver].total++; freq[r.driver].cost += +(r.totalCost||0);
+  });
+  const freqRows = Object.values(freq).sort((a,b) => a.total !== b.total ? b.total - a.total : a.driver.localeCompare(b.driver,'zh-Hant-TW'));
+  freqRows.forEach((x,i) => { x.rank = i+1; });
+  const monthLabel = months.length===1 ? months[0] : `${months[0]}～${months[months.length-1]}`;
+  const ws5 = XLSX.utils.aoa_to_sheet([['課別','駕駛人','統計月份','出車合計次數','出車頻率排名','總申請費用(元)'],...freqRows.map(x=>[x.dept,x.driver,monthLabel,x.total,x.rank,x.cost]),['合計','','',freqRows.reduce((s,x)=>s+x.total,0),'',freqRows.reduce((s,x)=>s+x.cost,0)]]);
+  ws5['!cols'] = [{wch:10},{wch:12},{wch:16},{wch:14},{wch:12},{wch:14}];
+  styleSheet(ws5, new Set([5]), new Set());
+  XLSX.utils.book_append_sheet(wb, ws5, '出車頻率');
+  XLSX.writeFile(wb, `用車記錄_${from||'all'}${to&&to!==from?'_至_'+to:''}${dept?'_'+dept:''}.xlsx`);
+  toast('Excel 已下載！', 'ok');
+}
+
+function styleSheet(ws, costCols, dateCols) {
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R=0; R<=range.e.r; R++) for (let C=0; C<=range.e.c; C++) {
+    const addr = XLSX.utils.encode_cell({r:R,c:C}); if(!ws[addr]) continue;
+    const isNum = typeof ws[addr].v === 'number';
+    const isDate = dateCols.has(C) && R > 0;
+    if (isDate) { ws[addr].t='s'; ws[addr].s = { alignment:{horizontal:'center',vertical:'center'}, font:{color:{rgb:'000000'}}, numFmt:'@' }; }
+    else { ws[addr].s = { alignment:{horizontal:isNum?'right':'left',vertical:'center'}, font:R===0?{bold:true,color:{rgb:'000000'}}:{color:{rgb:'000000'}}, numFmt:(costCols.has(C)&&R>0)?'#,##0':undefined }; }
+  }
+}
+
+// ── 人員管理 ──
+function deptTagHtml(dept) {
+  if (!dept) return '';
+  return `<span class="dept-tag dept-${dept}">${dept}</span>`;
+}
+
+function renderMembers() {
+  document.getElementById('memCnt').textContent = `共 ${members.length} 位`;
+  document.getElementById('memList').innerHTML = members.length
+    ? members.map((m, i) => {
+        const obj = toObj(m);
+        return `<div class="mem-row">
+          <div class="mem-av">${obj.name.slice(0,2)}</div>
+          <div class="mem-name">
+            ${obj.name}
+            ${deptTagHtml(obj.dept)}
+            ${obj.title ? `<span style="font-size:11px;color:var(--text-muted);margin-left:4px">${obj.title}</span>` : ''}
+          </div>
+          <button class="btn-del" onclick="delMem(${i})">移除</button>
+        </div>`;
+      }).join('')
+    : '<div style="padding:16px 18px;color:var(--text-muted);font-size:13px">尚無人員，請在上方新增</div>';
+}
+
+async function addMember() {
+  const name = document.getElementById('newMemName').value.trim();
+  const dept = document.getElementById('newMemDept').value;
+  const title = document.getElementById('newMemTitle').value.trim();
+  if (!name) { toast('請輸入姓名', 'er'); return; }
+  const names = members.map(m => toObj(m).name);
+  if (names.includes(name)) { toast('此人員已存在', 'er'); return; }
+  const newMember = { name, dept, title };
+  const newList = [...members, newMember];
+  try {
+    await api({ action: 'saveMembers', data: JSON.stringify(newList) });
+    members = newList; buildSelects(); renderMembers();
+    document.getElementById('newMemName').value = '';
+    document.getElementById('newMemTitle').value = '';
+    document.getElementById('newMemDept').value = '';
+    toast(`已新增 ${name}${dept ? '（' + dept + '）' : ''}`, 'ok');
+  } catch(e) { toast('儲存失敗', 'er'); }
+}
+
+async function delMem(i) {
+  const obj = toObj(members[i]);
+  if (!confirm(`確定移除「${obj.name}」？`)) return;
+  const newList = members.filter((_, idx) => idx !== i);
+  try {
+    await api({ action: 'saveMembers', data: JSON.stringify(newList) });
+    members = newList; buildSelects(); renderMembers(); toast('已移除', 'ok');
+  } catch(e) { toast('刪除失敗', 'er'); }
+}
+
+async function clearAll() {
+  if (!confirm('確定要清除所有記錄？此動作無法復原。')) return;
+  setSyncState('loading', '清除中…');
+  try {
+    for (const r of [...records]) { await api({ action: 'deleteRecord', id: String(r.id) }); }
+    records = []; setSyncState('ok', '已同步'); updateBadge(); toast('已清除所有記錄', 'ok');
+  } catch(e) { setSyncState('error', '清除失敗'); toast('清除失敗', 'er'); }
+}
+
+async function clearAllMembers() {
+  if (members.length === 0) { toast('人員名單已經是空的', 'in'); return; }
+  if (!confirm(`確定要清空所有人員名單？共 ${members.length} 位，此動作無法復原。`)) return;
+  setSyncState('loading', '清除中…');
+  try {
+    await api({ action: 'saveMembers', data: JSON.stringify([]) });
+    members = []; buildSelects(); renderMembers();
+    setSyncState('ok', '已同步'); toast('已清空人員名單', 'ok');
+  } catch(e) { setSyncState('error', '清除失敗'); toast('清空失敗', 'er'); }
+}
+
+function toast(msg, type = 'in') {
+  const wrap = document.getElementById('toasts');
+  const el = document.createElement('div'); el.className = `toast ${type}`; el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 2800);
+}
+
+// ── Excel 匯入（第二欄姓名比對）──
+let importCandidates = [];
+
+function handleImportDrop(e) {
+  e.preventDefault();
+  document.getElementById('importDropZone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) parseImportFile(file);
+}
+function handleImportFile(input) {
+  const file = input.files[0];
+  if (file) parseImportFile(file);
+  input.value = '';
+}
+
+function parseImportFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let rows = [];
+      if (ext === 'csv') {
+        const text = e.target.result;
+        rows = text.split(/\\r?\\n/).map(l => l.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+      } else {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      }
+      // 過濾空行，取前三欄
+      rows = rows.filter(r => r && r.length >= 1 && String(r[0]||'').trim());
+      if (!rows.length) { toast('找不到資料，請確認格式', 'er'); return; }
+
+      // 判斷是否有標題列（第一列第二欄含「姓名」）
+      let dataRows = rows;
+      const firstRow = rows[0].map(c => String(c||'').trim());
+      if (firstRow.includes('姓名') || firstRow.includes('name') || firstRow.includes('Name')) {
+        dataRows = rows.slice(1);
+      }
+
+      // 解析：col[0]=課別, col[1]=姓名（比對欄）, col[2]=職稱
+      const parsed = dataRows.map(r => ({
+        dept:  String(r[0]||'').trim(),
+        name:  String(r[1]||'').trim(),
+        title: String(r[2]||'').trim()
+      })).filter(x => x.name);
+
+      if (!parsed.length) { toast('未找到有效姓名資料（請確認第二欄為姓名）', 'er'); return; }
+      showImportPreview(parsed);
+    } catch(err) { toast('檔案讀取失敗：' + err.message, 'er'); }
+  };
+  if (ext === 'csv') reader.readAsText(file, 'UTF-8');
+  else reader.readAsArrayBuffer(file);
+}
+
+function showImportPreview(parsed) {
+  importCandidates = parsed;
+  const existingNames = new Set(members.map(m => toObj(m).name));
+  const newOnes = parsed.filter(p => !existingNames.has(p.name));
+  const dupOnes = parsed.filter(p => existingNames.has(p.name));
+  const preview = document.getElementById('importPreview');
+  const list = document.getElementById('importPreviewList');
+  document.getElementById('importPreviewTitle').textContent = `預覽匯入名單（共 ${parsed.length} 筆）`;
+  list.innerHTML = parsed.map(p => {
+    const isDup = existingNames.has(p.name);
+    return `<div class="import-preview-row">
+      <span style="flex:1">
+        ${p.name}
+        ${p.dept ? `<span class="dept-tag dept-${p.dept}" style="margin-left:5px">${p.dept}</span>` : ''}
+        ${p.title ? `<span style="font-size:11px;color:var(--text-muted);margin-left:4px">${p.title}</span>` : ''}
+      </span>
+      <span class="import-status ${isDup?'dup':'new'}">${isDup?'已存在':'新增'}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('importSummary').textContent = `新增 ${newOnes.length} 人，略過重複 ${dupOnes.length} 人`;
+  const confirmBtn = document.getElementById('importConfirmBtn');
+  confirmBtn.disabled = newOnes.length === 0;
+  confirmBtn.style.opacity = newOnes.length === 0 ? '.5' : '1';
+  preview.classList.add('show');
+}
+
+async function confirmImport() {
+  const existingNames = new Set(members.map(m => toObj(m).name));
+  const newOnes = importCandidates.filter(p => !existingNames.has(p.name));
+  if (!newOnes.length) { toast('沒有可新增的人員', 'in'); return; }
+  const newList = [...members, ...newOnes];
+  const btn = document.getElementById('importConfirmBtn');
+  btn.disabled = true; btn.textContent = '匯入中…';
+  try {
+    const result = await api({ action: 'saveMembers', data: JSON.stringify(newList) });
+    if (result && result.success) {
+      members = newList; buildSelects(); renderMembers();
+      clearImport();
+      toast(`已匯入 ${newOnes.length} 位人員，共 ${newList.length} 位`, 'ok');
+    } else { throw new Error(result && result.error ? result.error : '未知錯誤'); }
+  } catch(e) { toast('匯入失敗：' + e.message, 'er'); }
+  finally { btn.disabled = false; btn.textContent = '確認匯入'; }
+}
+
+function clearImport() {
+  importCandidates = [];
+  document.getElementById('importPreview').classList.remove('show');
+  document.getElementById('importPreviewList').innerHTML = '';
+}
+
+function downloadTemplate() {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['課別', '姓名', '職稱'],
+    ['北一課', '王怡晶', '經理'],
+    ['台中課', '黃慧文', '經理'],
+    ['北一課', '趙千皓', '課長'],
+    ['北一課', '張絜涵', '助理高專'],
+  ]);
+  ws['!cols'] = [{wch:10},{wch:12},{wch:12}];
+  // 標題列樣式
+  ['A1','B1','C1'].forEach(addr => {
+    if (ws[addr]) ws[addr].s = { font:{ bold:true }, fill:{ fgColor:{ rgb:'E6F1FB' } }, alignment:{ horizontal:'center' } };
+  });
+  XLSX.utils.book_append_sheet(wb, ws, '人員名單');
+  XLSX.writeFile(wb, '人員名單範本.xlsx');
+  toast('範本已下載（格式：課別 / 姓名 / 職稱）', 'ok');
+}
+
+// ── 照片 ──
+const photoData = { 1: '', 2: '' };
+function handlePhoto(input, num) {
+  const file = input.files[0]; if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { toast('照片大小不可超過 5MB', 'er'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result; photoData[num] = base64;
+    const slot = document.getElementById('photoSlot' + num);
+    slot.classList.add('has-photo');
+    let img = slot.querySelector('img');
+    if (!img) { img = document.createElement('img'); img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover'; slot.insertBefore(img, slot.firstChild); }
+    img.src = base64;
+    let rmBtn = slot.querySelector('.photo-remove');
+    if (!rmBtn) { rmBtn = document.createElement('button'); rmBtn.className = 'photo-remove'; rmBtn.innerHTML = '×'; rmBtn.onclick = function(e) { e.preventDefault(); e.stopPropagation(); clearPhoto(num); }; slot.appendChild(rmBtn); }
+  };
+  reader.readAsDataURL(file);
+}
+function clearPhoto(num) {
+  photoData[num] = '';
+  const slot = document.getElementById('photoSlot' + num); if (!slot) return;
+  slot.classList.remove('has-photo');
+  const img = slot.querySelector('img'); if (img) img.remove();
+  const rmBtn = slot.querySelector('.photo-remove'); if (rmBtn) rmBtn.remove();
+  const fi = slot.querySelector('input[type=file]'); if (fi) fi.value = '';
+}
+function openLightboxById(id, num) {
+  const r = records.find(r => String(r.id) === String(id)); if (!r) return;
+  const src = num === 1 ? r.photo1 : r.photo2; if (src) openLightbox(src);
+}
+function openLightbox(src) {
+  const lb = document.createElement('div'); lb.className = 'photo-lightbox';
+  lb.innerHTML = `<img src="${src}" alt="照片"><button class="photo-lightbox-close" onclick="this.parentElement.remove()">×</button>`;
+  lb.onclick = function(e) { if (e.target === lb) lb.remove(); };
+  document.body.appendChild(lb);
+}
+
+// ── 登入 ──
+const AUTH_USER = 'Reyi945';
+const AUTH_PASS = '879123';
+const SESSION_KEY = 'vl_auth';
+function doLogin() {
+  const u = document.getElementById('loginUser').value;
+  const p = document.getElementById('loginPass').value;
+  const err = document.getElementById('loginErr');
+  if (u === AUTH_USER && p === AUTH_PASS) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('loginScreen').style.display = 'none';
+    err.style.display = 'none'; init();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    document.getElementById('loginPass').focus();
+  }
+}
+
+// ── 初始化 ──
+document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+const now = new Date(), ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+['fMonth','exFrom','exTo'].forEach(id => document.getElementById(id).value = ym);
+addPax();
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+  document.getElementById('loginScreen').style.display = 'none'; init();
+} else { setTimeout(() => document.getElementById('loginUser').focus(), 100); }
+</script>
+</body>
+</html>
